@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Zin Choc heart and eye mark">
+  <!-- Vector recreation of the Zin Choc heart-and-eye logo supplied by the owner.
+       Ink colour sampled from the original mark. -->
+  <g>
+    <!-- Asymmetric heart, right lobe taller -->
+    <path fill="#1C3040" stroke="#3E5668" stroke-width="2.5" stroke-linejoin="round"
+      d="M100 186
+         C 62 152, 24 120, 17 79
+         C 12 49, 30 27, 56 27
+         C 76 27, 91 40, 99 55
+         C 104 35, 123 14, 149 14
+         C 176 14, 192 38, 187 74
+         C 181 119, 140 154, 100 186 Z"/>
+    <!-- Sclera -->
+    <path fill="#FFFFFF"
+      d="M28 95
+         C 56 62, 146 60, 178 90
+         C 152 132, 62 136, 28 95 Z"/>
+    <!-- Iris peeking from beneath the upper lid -->
+    <path fill="#1C3040"
+      d="M67 76 C 76 64, 124 63, 134 77 C 130 96, 118 106, 100 106 C 82 106, 71 94, 67 76 Z"/>
+    <!-- Lower iris ring -->
+    <path fill="none" stroke="#1C3040" stroke-width="3.5" stroke-linecap="round"
+      d="M70 82 C 74 106, 92 118, 104 117 C 118 116, 128 106, 131 90"/>
+  </g>
+</svg>
