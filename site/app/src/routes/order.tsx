@@ -166,6 +166,7 @@ function OrderFlow({
       product={product}
       dbReady={dbReady}
       notesHint={settings.order_notes_hint}
+      leadTime={settings.lead_time_text}
       onPlaced={setPlaced}
     />
   );
@@ -175,11 +176,13 @@ function OrderForm({
   product,
   dbReady,
   notesHint,
+  leadTime,
   onPlaced,
 }: {
   product: Product;
   dbReady: boolean;
   notesHint: string;
+  leadTime: string;
   onPlaced: (p: Placed) => void;
 }) {
   const [quantity, setQuantity] = useState(product.min_order);
@@ -275,7 +278,7 @@ function OrderForm({
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-ink/60">Lead time</dt>
-            <dd className="text-ink">4 to 6 weeks from design approval</dd>
+            <dd className="text-ink">{leadTime}</dd>
           </div>
         </dl>
         <p className="mt-4 max-w-md font-body text-xs leading-relaxed text-ink/55">

@@ -40,7 +40,16 @@ export function AtelierStory({ settings }: { settings: Settings }) {
             />
           ) : (
             <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-5 rounded-sm bg-panel">
-              <HeartEyeMark variant="silver" className="h-16 w-16 opacity-80" />
+              {settings.logo_image_key ? (
+                <img
+                  src={`/img/${settings.logo_image_key}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-16 w-16 object-contain opacity-80"
+                />
+              ) : (
+                <HeartEyeMark variant="silver" className="h-16 w-16 opacity-80" />
+              )}
               <p className="max-w-[22ch] px-6 text-center font-body text-xs uppercase tracking-[0.2em] text-ink/45">
                 Finished by hand, in cocoa butter, gold and silver
               </p>

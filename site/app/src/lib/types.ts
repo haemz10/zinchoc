@@ -49,7 +49,9 @@ export type Settings = {
   hero_image_key: string;
   story_image_key: string;
   logo_image_key: string;
+  og_image_key: string;
   faq_public: string;
+  hero_kicker: string;
   hero_headline: string;
   hero_subline: string;
   story_heading: string;
@@ -57,6 +59,15 @@ export type Settings = {
   closing_line_1: string;
   collection_intro: string;
   order_notes_hint: string;
+  process_heading: string;
+  process_intro: string;
+  process_steps: string;
+  gallery_empty_text: string;
+  lead_time_text: string;
+  footer_blurb: string;
+  show_page_privacy: string;
+  show_page_terms: string;
+  show_page_shipping: string;
   color_ground: string;
   color_panel: string;
   color_ink: string;
@@ -124,7 +135,9 @@ export const DEFAULT_SETTINGS: Settings = {
   hero_image_key: "",
   story_image_key: "",
   logo_image_key: "",
+  og_image_key: "",
   faq_public: "0",
+  hero_kicker: "Wedding bomboniere, made in Australia",
   hero_headline: "Where art meets chocolate.",
   hero_subline:
     "Handcrafted wedding bomboniere and collectible art bonbon boxes. Made to order in Australia, in small numbers, for a small number of commissions each season.",
@@ -135,6 +148,23 @@ export const DEFAULT_SETTINGS: Settings = {
   collection_intro:
     "Every piece is designed for one wedding, or made in a small collectible edition. All prices are in Australian dollars and include GST. Delivery is quoted separately, and lead time is four to six weeks from design approval.",
   order_notes_hint: "",
+  process_heading: "How commissioning works",
+  process_intro: "A Zin Choc commission unfolds in five quiet steps.",
+  process_steps: [
+    "Enquire\nWrite to us with your wedding date, guest numbers and the feeling you want your favours to carry. We reply within two business days.",
+    "Tasting and consultation\nWe arrange a tasting of our couverture and signature fillings, in person in Melbourne or by courier elsewhere in Australia, and talk through colours, finishes and packaging.",
+    "Custom design\nWe prepare a design proposal for your bomboniere: flavours, finishes, monograms or motifs, and packaging. You approve every detail before anything is made. A 50% deposit secures your date.",
+    "Production\nYour pieces are made by hand in the weeks before your wedding, timed so the chocolate is at its freshest. Please allow four to six weeks from design approval.",
+    "Delivery\nYour bomboniere arrive cold-chain protected, ahead of your wedding day, ready to place at each setting. The balance is due two weeks before delivery.",
+  ].join("\n\n"),
+  gallery_empty_text:
+    "Photographs from the atelier are on their way. In the meantime, the collection is the best introduction to our work.",
+  lead_time_text: "4 to 6 weeks from design approval",
+  footer_blurb:
+    "Handcrafted wedding chocolate bomboniere and art chocolate boxes, made in Melbourne, Australia. Curated artisan chocolates.",
+  show_page_privacy: "1",
+  show_page_terms: "1",
+  show_page_shipping: "1",
   color_ground: "#f3eee5",
   color_panel: "#eae3d5",
   color_ink: "#1c3040",

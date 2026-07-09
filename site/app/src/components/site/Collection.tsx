@@ -42,7 +42,11 @@ export function Collection({ products, settings }: { products: Product[]; settin
             {wedding.length > 0 ? (
               <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
                 {wedding.map((product) => (
-                  <ProductTile key={product.slug} product={product} />
+                  <ProductTile
+                    key={product.slug}
+                    product={product}
+                    logoKey={settings.logo_image_key}
+                  />
                 ))}
               </div>
             ) : (
@@ -66,7 +70,11 @@ export function Collection({ products, settings }: { products: Product[]; settin
             {art.length > 0 ? (
               <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
                 {art.map((product) => (
-                  <ProductTile key={product.slug} product={product} />
+                  <ProductTile
+                    key={product.slug}
+                    product={product}
+                    logoKey={settings.logo_image_key}
+                  />
                 ))}
               </div>
             ) : (

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { adminListLegalPages, adminSaveLegalPage } from "../../lib/api/admin.functions";
-import type { LegalPage } from "../../lib/types";
+import {
+  adminGetSettings,
+  adminListLegalPages,
+  adminSaveLegalPage,
+  adminSetPageVisible,
+} from "../../lib/api/admin.functions";
+import type { LegalPage, Settings } from "../../lib/types";
 
 // Admin Pages tab: edit the legal pages (privacy, terms, shipping-refunds).
 // Body uses the simple format the public renderer understands: "## " section
@@ -15,8 +20,15 @@ const field =
 
 type Slug = "privacy" | "terms" | "shipping-refunds";
 
+const VISIBILITY_KEY: Record<Slug, keyof Settings> = {
+  privacy: "show_page_privacy",
+  terms: "show_page_terms",
+  "shipping-refunds": "show_page_shipping",
+};
+
 export function PagesTab() {
   const [pages, setPages] = useState<LegalPage[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Slug>("privacy");
   const [title, setTitle] = useState("");
@@ -27,8 +39,9 @@ export function PagesTab() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await adminListLegalPages();
+      const [res, settingsRes] = await Promise.all([adminListLegalPages(), adminGetSettings()]);
       setPages(res.pages);
+      setSettings(settingsRes.settings);
     } finally {
       setLoading(false);
     }
@@ -94,6 +107,36 @@ export function PagesTab() {
             <option value="shipping-refunds">Shipping and Refunds (/shipping-refunds)</option>
           </select>
         </label>
+
+        {settings ? (
+          <label className="mt-4 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={settings[VISIBILITY_KEY[selected]] !== "0"}
+              onChange={async (e) => {
+                const visible = e.target.checked;
+                const previous = settings[VISIBILITY_KEY[selected]];
+                setError("");
+                // Optimistic: flip immediately, revert if the server rejects.
+                setSettings({ ...settings, [VISIBILITY_KEY[selected]]: visible ? "1" : "0" });
+                try {
+                  await adminSetPageVisible({ data: { slug: selected, visible } });
+                } catch {
+                  setSettings({ ...settings, [VISIBILITY_KEY[selected]]: previous });
+                  setError("Could not change the page visibility. Please try again.");
+                }
+              }}
+              className="mt-1 h-4 w-4 shrink-0 accent-gold"
+            />
+            <span className="font-body text-sm leading-relaxed text-ink/80">
+              Show this page on the website
+              <span className="mt-0.5 block font-body text-xs text-ink/55">
+                When off, the page and its footer link are hidden from visitors. The content stays
+                saved here, and you still see the page while signed in.
+              </span>
+            </span>
+          </label>
+        ) : null}
 
         {error ? <p className="mt-3 font-body text-sm text-[#8a2f2f]">{error}</p> : null}
 

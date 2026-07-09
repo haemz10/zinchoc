@@ -22,7 +22,7 @@ const field =
 const btn =
   "inline-flex items-center rounded-sm px-3 py-1.5 font-body text-xs font-medium transition-transform active:scale-[0.98]";
 
-type SlotId = "hero" | "story" | "logo";
+type SlotId = "hero" | "story" | "logo" | "og";
 
 const SLOTS: { id: SlotId; label: string; hint: string }[] = [
   {
@@ -38,7 +38,12 @@ const SLOTS: { id: SlotId; label: string; hint: string }[] = [
   {
     id: "logo",
     label: "Brand logo",
-    hint: "Your heart-and-eye mark. PNG with transparent or white background, used in the header and footer exactly as uploaded.",
+    hint: "Your heart-and-eye mark. PNG with transparent or white background. Used in the header, footer, the large hero watermark, and everywhere a photo has not been uploaded yet.",
+  },
+  {
+    id: "og",
+    label: "Social share image",
+    hint: "Shown as the preview card when the site is shared on social media or chat apps. Landscape 1200 x 630. Until uploaded, the built-in branded cover is used.",
   },
 ];
 
@@ -106,6 +111,7 @@ export function SettingsTab() {
             settings.show_collection_wedding === "0" ? ("0" as const) : ("1" as const),
           show_collection_art:
             settings.show_collection_art === "0" ? ("0" as const) : ("1" as const),
+          hero_kicker: settings.hero_kicker,
           hero_headline: settings.hero_headline,
           hero_subline: settings.hero_subline,
           story_heading: settings.story_heading,
@@ -113,6 +119,15 @@ export function SettingsTab() {
           closing_line_1: settings.closing_line_1,
           collection_intro: settings.collection_intro,
           order_notes_hint: settings.order_notes_hint,
+          process_heading: settings.process_heading,
+          process_intro: settings.process_intro,
+          process_steps: settings.process_steps,
+          gallery_empty_text: settings.gallery_empty_text,
+          lead_time_text: settings.lead_time_text,
+          footer_blurb: settings.footer_blurb,
+          show_page_privacy: settings.show_page_privacy === "0" ? ("0" as const) : ("1" as const),
+          show_page_terms: settings.show_page_terms === "0" ? ("0" as const) : ("1" as const),
+          show_page_shipping: settings.show_page_shipping === "0" ? ("0" as const) : ("1" as const),
           paypal_email: settings.paypal_email,
           bank_account_name: settings.bank_account_name,
           bank_bsb: settings.bank_bsb,
@@ -394,6 +409,9 @@ export function SettingsTab() {
             { key: "show_collection_wedding", label: "Collection: wedding pieces" },
             { key: "show_collection_art", label: "Collection: art bonbon boxes" },
             { key: "show_gallery", label: "Gallery page" },
+            { key: "show_page_privacy", label: "Information: Privacy Policy page" },
+            { key: "show_page_terms", label: "Information: Terms of Sale page" },
+            { key: "show_page_shipping", label: "Information: Shipping and Refunds page" },
           ] as const
         ).map((section) => (
           <label key={section.key} className="flex items-start gap-3">
@@ -408,6 +426,17 @@ export function SettingsTab() {
         ))}
 
         <h3 className="border-t border-ink/10 pt-4 font-display text-base text-ink">Site copy</h3>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Hero kicker (small line above the headline)
+          </span>
+          <input
+            type="text"
+            value={settings.hero_kicker}
+            onChange={(e) => set("hero_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
         <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">Hero headline</span>
           <input
@@ -475,6 +504,71 @@ export function SettingsTab() {
             value={settings.order_notes_hint}
             onChange={(e) => set("order_notes_hint", e.target.value)}
             className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Order page lead time (shown next to "Lead time")
+          </span>
+          <input
+            type="text"
+            value={settings.lead_time_text}
+            onChange={(e) => set("lead_time_text", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            "How commissioning works" heading
+          </span>
+          <input
+            type="text"
+            value={settings.process_heading}
+            onChange={(e) => set("process_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            "How commissioning works" introduction
+          </span>
+          <input
+            type="text"
+            value={settings.process_intro}
+            onChange={(e) => set("process_intro", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Commissioning steps (each step: first line is the title, following lines the
+            description; leave a blank line between steps — numbering is automatic)
+          </span>
+          <textarea
+            rows={12}
+            value={settings.process_steps}
+            onChange={(e) => set("process_steps", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Gallery empty-state message (shown until photos are uploaded)
+          </span>
+          <textarea
+            rows={2}
+            value={settings.gallery_empty_text}
+            onChange={(e) => set("gallery_empty_text", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Footer introduction</span>
+          <textarea
+            rows={2}
+            value={settings.footer_blurb}
+            onChange={(e) => set("footer_blurb", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
           />
         </label>
 
@@ -614,7 +708,9 @@ export function SettingsTab() {
               ? settings.hero_image_key
               : slot.id === "story"
                 ? settings.story_image_key
-                : settings.logo_image_key;
+                : slot.id === "og"
+                  ? settings.og_image_key
+                  : settings.logo_image_key;
           return (
             <div key={slot.id} className="rounded-sm border border-ink/15 bg-white p-4">
               <p className="font-body text-sm font-semibold text-ink">{slot.label}</p>

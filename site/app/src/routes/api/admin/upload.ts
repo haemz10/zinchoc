@@ -21,7 +21,7 @@ const EXT_BY_TYPE: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-const SITE_SLOTS = new Set(["hero", "story", "logo"]);
+const SITE_SLOTS = new Set(["hero", "story", "logo", "og"]);
 
 export const Route = createFileRoute("/api/admin/upload")({
   server: {

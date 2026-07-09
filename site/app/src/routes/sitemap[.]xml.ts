@@ -2,13 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { getSettings } from "../lib/data.server";
 
-const ROUTES = [
+type SitemapRoute = {
+  path: string;
+  priority: string;
+  changefreq: string;
+  faqOnly?: boolean;
+  galleryOnly?: boolean;
+  settingKey?: "show_page_privacy" | "show_page_terms" | "show_page_shipping";
+};
+
+const ROUTES: SitemapRoute[] = [
   { path: "/", priority: "1.0", changefreq: "weekly" },
   { path: "/gallery", priority: "0.7", changefreq: "weekly", galleryOnly: true },
   { path: "/faq", priority: "0.7", changefreq: "monthly", faqOnly: true },
-  { path: "/privacy", priority: "0.3", changefreq: "yearly" },
-  { path: "/terms", priority: "0.3", changefreq: "yearly" },
-  { path: "/shipping-refunds", priority: "0.3", changefreq: "yearly" },
+  { path: "/privacy", priority: "0.3", changefreq: "yearly", settingKey: "show_page_privacy" },
+  { path: "/terms", priority: "0.3", changefreq: "yearly", settingKey: "show_page_terms" },
+  {
+    path: "/shipping-refunds",
+    priority: "0.3",
+    changefreq: "yearly",
+    settingKey: "show_page_shipping",
+  },
 ];
 
 export const Route = createFileRoute("/sitemap.xml")({
@@ -22,7 +36,10 @@ export const Route = createFileRoute("/sitemap.xml")({
         const faqPublic = settings.faq_public === "1";
         const galleryPublic = settings.show_gallery === "1";
         const urls = ROUTES.filter(
-          (r) => (faqPublic || !r.faqOnly) && (galleryPublic || !r.galleryOnly),
+          (r) =>
+            (faqPublic || !r.faqOnly) &&
+            (galleryPublic || !r.galleryOnly) &&
+            (!r.settingKey || settings[r.settingKey] !== "0"),
         )
           .map(
             (r) => `  <url>

@@ -6,15 +6,6 @@ import { HeartEyeMark } from "./HeartEyeMark";
 // icon/mailto is intentionally omitted until the owner assigns a business
 // address; the contact email shows as plain text.
 
-type FooterLink = { href: string; label: string; faqOnly?: boolean };
-
-const LEGAL: FooterLink[] = [
-  { href: "/faq", label: "FAQ", faqOnly: true },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms of sale" },
-  { href: "/shipping-refunds", label: "Shipping and refunds" },
-];
-
 export function SiteFooter({
   settings,
   showFaq = true,
@@ -23,7 +14,18 @@ export function SiteFooter({
   showFaq?: boolean;
 }) {
   const year = new Date().getFullYear();
-  const links = LEGAL.filter((item) => showFaq || !item.faqOnly);
+  // Each information page has its own admin visibility switch; hidden pages
+  // drop out of the footer (their content stays saved in admin Pages).
+  const links = [
+    { href: "/faq", label: "FAQ", visible: showFaq },
+    { href: "/privacy", label: "Privacy", visible: settings.show_page_privacy !== "0" },
+    { href: "/terms", label: "Terms of sale", visible: settings.show_page_terms !== "0" },
+    {
+      href: "/shipping-refunds",
+      label: "Shipping and refunds",
+      visible: settings.show_page_shipping !== "0",
+    },
+  ].filter((item) => item.visible);
   return (
     <footer className="border-t border-silver/40 bg-panel">
       <div className="mx-auto max-w-6xl px-5 py-14">
@@ -44,8 +46,7 @@ export function SiteFooter({
               </span>
             </div>
             <p className="mt-4 font-body text-sm leading-relaxed text-ink/70">
-              Handcrafted wedding chocolate bomboniere and art chocolate boxes, made in Australia.
-              Curated artisan chocolates.
+              {settings.footer_blurb}
             </p>
             <div className="mt-5 flex items-center gap-4">
               <a

@@ -85,3 +85,24 @@ export function UL({ children }: { children: ReactNode }) {
     </ul>
   );
 }
+
+// Shown in place of an information page the owner has switched off in admin.
+// The saved content is untouched; only public visibility changes.
+export function HiddenPageNotice() {
+  return (
+    <div className="mx-auto max-w-2xl px-5 py-24 text-center md:py-32">
+      <h1 className="font-display text-3xl leading-tight text-ink md:text-4xl">
+        This page is not published
+      </h1>
+      <p className="mx-auto mt-4 max-w-md font-body text-base leading-relaxed text-ink/75">
+        If you have a question about ordering, we would love to hear from you.
+      </p>
+      <a
+        href="/#enquiry"
+        className="mt-8 inline-block font-body text-sm text-ink underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
+      >
+        Tell us about your day
+      </a>
+    </div>
+  );
+}

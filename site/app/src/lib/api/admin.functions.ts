@@ -176,6 +176,7 @@ const SettingsSchema = z.object({
   show_gallery: z.enum(["0", "1"]),
   show_collection_wedding: z.enum(["0", "1"]),
   show_collection_art: z.enum(["0", "1"]),
+  hero_kicker: z.string().trim().max(120),
   hero_headline: z.string().trim().max(200),
   hero_subline: z.string().trim().max(600),
   story_heading: z.string().trim().max(200),
@@ -183,6 +184,15 @@ const SettingsSchema = z.object({
   closing_line_1: z.string().trim().max(400),
   collection_intro: z.string().trim().max(800),
   order_notes_hint: z.string().trim().max(300),
+  process_heading: z.string().trim().max(200),
+  process_intro: z.string().trim().max(400),
+  process_steps: z.string().trim().max(6000),
+  gallery_empty_text: z.string().trim().max(400),
+  lead_time_text: z.string().trim().max(120),
+  footer_blurb: z.string().trim().max(400),
+  show_page_privacy: z.enum(["0", "1"]),
+  show_page_terms: z.enum(["0", "1"]),
+  show_page_shipping: z.enum(["0", "1"]),
   paypal_email: z.string().trim().max(200),
   bank_account_name: z.string().trim().max(120),
   bank_bsb: z.string().trim().max(20),
@@ -279,7 +289,7 @@ export const adminDeleteGalleryImage = createServerFn({ method: "POST" })
 
 export const adminClearSiteImage = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
-    z.object({ slot: z.enum(["hero", "story", "logo"]) }).parse(data),
+    z.object({ slot: z.enum(["hero", "story", "logo", "og"]) }).parse(data),
   )
   .handler(async ({ data }) => {
     await requireAdmin();
@@ -302,6 +312,7 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("show_gallery", data.show_gallery);
     await setSetting("show_collection_wedding", data.show_collection_wedding);
     await setSetting("show_collection_art", data.show_collection_art);
+    await setSetting("hero_kicker", data.hero_kicker);
     await setSetting("hero_headline", data.hero_headline);
     await setSetting("hero_subline", data.hero_subline);
     await setSetting("story_heading", data.story_heading);
@@ -309,6 +320,15 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("closing_line_1", data.closing_line_1);
     await setSetting("collection_intro", data.collection_intro);
     await setSetting("order_notes_hint", data.order_notes_hint);
+    await setSetting("process_heading", data.process_heading);
+    await setSetting("process_intro", data.process_intro);
+    await setSetting("process_steps", data.process_steps);
+    await setSetting("gallery_empty_text", data.gallery_empty_text);
+    await setSetting("lead_time_text", data.lead_time_text);
+    await setSetting("footer_blurb", data.footer_blurb);
+    await setSetting("show_page_privacy", data.show_page_privacy);
+    await setSetting("show_page_terms", data.show_page_terms);
+    await setSetting("show_page_shipping", data.show_page_shipping);
     await setSetting("paypal_email", data.paypal_email);
     await setSetting("bank_account_name", data.bank_account_name);
     await setSetting("bank_bsb", data.bank_bsb);
@@ -378,6 +398,29 @@ export const adminListLegalPages = createServerFn({ method: "POST" }).handler(as
   await requireAdmin();
   return { pages: await getAllLegalPages() };
 });
+
+/** Publish or hide one information page. Content is untouched; hidden pages
+ * drop out of the footer, the sitemap, and public view (admins still preview
+ * them). */
+export const adminSetPageVisible = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        slug: z.enum(["privacy", "terms", "shipping-refunds"]),
+        visible: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const key = {
+      privacy: "show_page_privacy",
+      terms: "show_page_terms",
+      "shipping-refunds": "show_page_shipping",
+    }[data.slug];
+    await setSetting(key, data.visible ? "1" : "0");
+    return { ok: true as const };
+  });
 
 export const adminSaveLegalPage = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>

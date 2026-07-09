@@ -68,6 +68,14 @@ export const getFaqPageData = createServerFn({ method: "GET" }).handler(async ()
   return { settings, origin: requestOrigin(), faqVisible, galleryVisible, isAdmin, items };
 });
 
+// Which settings switch publishes each information page. Hidden pages keep
+// their saved content; admins still preview them with a notice.
+const PAGE_VISIBILITY_KEY = {
+  privacy: "show_page_privacy",
+  terms: "show_page_terms",
+  "shipping-refunds": "show_page_shipping",
+} as const;
+
 export const getLegalPageData = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) =>
     z.object({ slug: z.enum(["privacy", "terms", "shipping-refunds"]) }).parse(data),
@@ -80,7 +88,17 @@ export const getLegalPageData = createServerFn({ method: "GET" })
     ]);
     const faqVisible = settings.faq_public === "1" || isAdmin;
     const galleryVisible = settings.show_gallery === "1" || isAdmin;
-    return { settings, origin: requestOrigin(), faqVisible, galleryVisible, page };
+    const pagePublic = settings[PAGE_VISIBILITY_KEY[data.slug]] !== "0";
+    const pageVisible = pagePublic || isAdmin;
+    return {
+      settings,
+      origin: requestOrigin(),
+      faqVisible,
+      galleryVisible,
+      isAdmin,
+      pagePublic,
+      page: pageVisible ? page : null,
+    };
   });
 
 export const getPageData = createServerFn({ method: "GET" }).handler(async () => {

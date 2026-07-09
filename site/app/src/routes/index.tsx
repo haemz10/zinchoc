@@ -16,6 +16,8 @@ export const Route = createFileRoute("/")({
   loader: async () => getHomeData(),
   head: ({ loaderData }) => {
     const origin = loaderData?.origin ?? "";
+    const ogKey = loaderData?.settings.og_image_key?.trim() ?? "";
+    const ogImage = origin ? (ogKey ? `${origin}/img/${ogKey}` : `${origin}/og-cover.jpg`) : "";
     const title = "Zin Choc | Wedding Chocolate Bomboniere, Made in Australia";
     const description =
       "Luxury artisan chocolate, handcrafted to order in Australia: wedding bomboniere and collectible art bonbon boxes.";
@@ -29,12 +31,12 @@ export const Route = createFileRoute("/")({
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Zin Choc" },
-        ...(origin
+        ...(ogImage
           ? [
               { property: "og:url", content: `${origin}/` },
-              { property: "og:image", content: `${origin}/og-cover.jpg` },
+              { property: "og:image", content: ogImage },
               { name: "twitter:card", content: "summary_large_image" },
-              { name: "twitter:image", content: `${origin}/og-cover.jpg` },
+              { name: "twitter:image", content: ogImage },
             ]
           : []),
       ],
@@ -101,7 +103,7 @@ function Home() {
         <Hero settings={settings} />
         {settings.show_story === "1" ? <AtelierStory settings={settings} /> : null}
         {showCollection ? <Collection products={products} settings={settings} /> : null}
-        {settings.show_process === "1" ? <HowItWorks /> : null}
+        {settings.show_process === "1" ? <HowItWorks settings={settings} /> : null}
         {faqVisible ? <FaqExcerpt items={faqItems} settings={settings} /> : null}
         <EnquirySection products={products} settings={settings} />
         <ClosingCta settings={settings} />

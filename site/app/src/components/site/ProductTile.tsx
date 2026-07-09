@@ -7,7 +7,7 @@ import { formatAud, type Product } from "../../lib/types";
 // photo; otherwise a deliberately composed brand tile: ink-navy ground, small
 // silver heart-and-eye mark, product name in Marcellus.
 
-export function ProductTile({ product }: { product: Product }) {
+export function ProductTile({ product, logoKey }: { product: Product; logoKey?: string }) {
   const noun = product.unit.toLowerCase().includes("box") ? "boxes" : "pieces";
 
   return (
@@ -30,7 +30,16 @@ export function ProductTile({ product }: { product: Product }) {
               backgroundImage: "radial-gradient(circle at 50% 38%, #B9BCC2 0%, transparent 55%)",
             }}
           />
-          <HeartEyeMark variant="silver" className="h-14 w-14 opacity-90" />
+          {logoKey ? (
+            <img
+              src={`/img/${logoKey}`}
+              alt=""
+              aria-hidden="true"
+              className="h-14 w-14 object-contain opacity-90 brightness-0 invert"
+            />
+          ) : (
+            <HeartEyeMark variant="silver" className="h-14 w-14 opacity-90" />
+          )}
           <p className="mt-6 px-6 text-center font-display text-2xl text-beige">{product.name}</p>
           <p className="mt-2 font-body text-[0.7rem] uppercase tracking-[0.25em] text-silver">
             Photograph to come
