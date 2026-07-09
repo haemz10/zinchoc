@@ -23,8 +23,14 @@ async function keyCandidates(): Promise<KeyCandidate[]> {
   return out;
 }
 
+/** Card checkout is offered when a key exists AND the last diagnostic did not
+ * find the hosting platform blocking Stripe. The stripe_checkout_active flag
+ * is maintained by the admin "Test card payments" button and by saving a key
+ * that validates, so a platform-level block never shows customers a card
+ * button that cannot work. */
 export async function stripeEnabled(): Promise<boolean> {
-  return (await keyCandidates()).length > 0;
+  if ((await keyCandidates()).length === 0) return false;
+  return (await getSettingValue("stripe_checkout_active")) !== "0";
 }
 
 /** Masked display value for admin: empty string when unset, else last 4. */
@@ -91,12 +97,18 @@ async function createSessionWithKey(key: string, params: URLSearchParams): Promi
     }
     return { ok: true, url, id };
   } catch (error) {
+    const raw = error instanceof Error ? error.message : "Network error.";
+    // The hosting platform's outbound proxy rejects the connection with an
+    // opaque "internal error; reference = ..." — translate it for the admin.
+    const blocked = raw.includes("internal error; reference");
     return {
       ok: false,
       failure: {
         status: 0,
-        code: "network_error",
-        message: error instanceof Error ? error.message.slice(0, 400) : "Network error.",
+        code: blocked ? "egress_blocked" : "network_error",
+        message: blocked
+          ? "The hosting platform is blocking the site's outbound connection to Stripe, so direct card checkout cannot run here. Customers can still pay by card through PayPal guest checkout, or add a Stripe Payment Link in Settings."
+          : raw.slice(0, 400),
       },
     };
   }

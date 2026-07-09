@@ -13,7 +13,8 @@ export const Route = createFileRoute("/privacy")({
   head: ({ loaderData }) => {
     const origin = loaderData?.origin ?? "";
     const title = "Privacy Policy | Zin Choc";
-    const description = "How Zin Choc collects, uses and protects your personal information, in line with the Australian Privacy Principles.";
+    const description =
+      "How Zin Choc collects, uses and protects your personal information, in line with the Australian Privacy Principles.";
     return {
       meta: [
         { title },

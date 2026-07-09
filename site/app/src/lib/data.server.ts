@@ -463,7 +463,9 @@ export async function insertGalleryImage(imageKey: string): Promise<void> {
     .prepare("SELECT COALESCE(MAX(sort), 0) AS max_sort FROM gallery_images")
     .first<{ max_sort: number }>();
   await db
-    .prepare("INSERT INTO gallery_images (image_key, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))")
+    .prepare(
+      "INSERT INTO gallery_images (image_key, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))",
+    )
     .bind(imageKey, (row?.max_sort ?? 0) + 1)
     .run();
 }
@@ -629,7 +631,9 @@ export async function updateLegalPage(slug: string, title: string, body: string)
   const db = getDb();
   if (!db) return;
   await db
-    .prepare("UPDATE legal_pages SET title = ?, body = ?, updated_at = datetime('now') WHERE slug = ?")
+    .prepare(
+      "UPDATE legal_pages SET title = ?, body = ?, updated_at = datetime('now') WHERE slug = ?",
+    )
     .bind(title, body, slug)
     .run();
 }

@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderThankYouRouteImport } from './routes/order_.thank-you'
 import { Route as ImgSplatRouteImport } from './routes/img/$'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
+import { Route as ApiAdminStripeTestRouteImport } from './routes/api/admin/stripe-test'
 import { Route as ApiAdminLogoutRouteImport } from './routes/api/admin/logout'
 import { Route as ApiAdminLoginRouteImport } from './routes/api/admin/login'
 import { Route as ApiAdminImportRouteImport } from './routes/api/admin/import'
@@ -94,6 +95,11 @@ const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   path: '/api/admin/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminStripeTestRoute = ApiAdminStripeTestRouteImport.update({
+  id: '/api/admin/stripe-test',
+  path: '/api/admin/stripe-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminLogoutRoute = ApiAdminLogoutRouteImport.update({
   id: '/api/admin/logout',
   path: '/api/admin/logout',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
+  '/api/admin/stripe-test': typeof ApiAdminStripeTestRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/enquiries/csv': typeof ApiAdminEnquiriesCsvRoute
   '/api/admin/orders/csv': typeof ApiAdminOrdersCsvRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
+  '/api/admin/stripe-test': typeof ApiAdminStripeTestRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/enquiries/csv': typeof ApiAdminEnquiriesCsvRoute
   '/api/admin/orders/csv': typeof ApiAdminOrdersCsvRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
+  '/api/admin/stripe-test': typeof ApiAdminStripeTestRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/enquiries/csv': typeof ApiAdminEnquiriesCsvRoute
   '/api/admin/orders/csv': typeof ApiAdminOrdersCsvRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
+    | '/api/admin/stripe-test'
     | '/api/admin/upload'
     | '/api/admin/enquiries/csv'
     | '/api/admin/orders/csv'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
+    | '/api/admin/stripe-test'
     | '/api/admin/upload'
     | '/api/admin/enquiries/csv'
     | '/api/admin/orders/csv'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
+    | '/api/admin/stripe-test'
     | '/api/admin/upload'
     | '/api/admin/enquiries/csv'
     | '/api/admin/orders/csv'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   ApiAdminImportRoute: typeof ApiAdminImportRoute
   ApiAdminLoginRoute: typeof ApiAdminLoginRoute
   ApiAdminLogoutRoute: typeof ApiAdminLogoutRoute
+  ApiAdminStripeTestRoute: typeof ApiAdminStripeTestRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
   ApiAdminEnquiriesCsvRoute: typeof ApiAdminEnquiriesCsvRoute
   ApiAdminOrdersCsvRoute: typeof ApiAdminOrdersCsvRoute
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/stripe-test': {
+      id: '/api/admin/stripe-test'
+      path: '/api/admin/stripe-test'
+      fullPath: '/api/admin/stripe-test'
+      preLoaderRoute: typeof ApiAdminStripeTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/logout': {
       id: '/api/admin/logout'
       path: '/api/admin/logout'
@@ -432,6 +452,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminImportRoute: ApiAdminImportRoute,
   ApiAdminLoginRoute: ApiAdminLoginRoute,
   ApiAdminLogoutRoute: ApiAdminLogoutRoute,
+  ApiAdminStripeTestRoute: ApiAdminStripeTestRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
   ApiAdminEnquiriesCsvRoute: ApiAdminEnquiriesCsvRoute,
   ApiAdminOrdersCsvRoute: ApiAdminOrdersCsvRoute,

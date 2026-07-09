@@ -427,23 +427,30 @@ export const adminSetStripeKey = createServerFn({ method: "POST" })
     await requireAdmin();
     const check = await validateStripeKey(data.key, fnOrigin());
     if (!check.ok) {
-      return {
-        ok: false as const,
-        error: `Stripe rejected this key (${check.failure.code}): ${check.failure.message} The key was not saved.`,
-        masked: await stripeKeyMasked(),
-      };
+      const error =
+        check.failure.code === "egress_blocked"
+          ? `${check.failure.message} The key was not saved.`
+          : `Stripe rejected this key (${check.failure.code}): ${check.failure.message} The key was not saved.`;
+      return { ok: false as const, error, masked: await stripeKeyMasked() };
     }
     await setSetting("stripe_secret_key", data.key);
+    await setSetting("stripe_checkout_active", "1");
     return { ok: true as const, masked: await stripeKeyMasked() };
   });
 
 /** Test the live card-payment path with the currently configured key(s).
  * Creates and immediately expires a $1 diagnostic Checkout session per key;
- * nothing is charged and nothing payable is left behind. */
+ * nothing is charged and nothing payable is left behind. The result also
+ * flips the customer-facing card button on or off, so a broken checkout is
+ * never offered. */
 export const adminTestStripe = createServerFn({ method: "POST" }).handler(async () => {
   await requireAdmin();
   const results = await stripeDiagnostics(fnOrigin());
-  return { results };
+  const cardActive = results.some((r) => r.ok);
+  if (results.length > 0) {
+    await setSetting("stripe_checkout_active", cardActive ? "1" : "0");
+  }
+  return { results, card_active: cardActive };
 });
 
 export const adminClearStripeKey = createServerFn({ method: "POST" }).handler(async () => {

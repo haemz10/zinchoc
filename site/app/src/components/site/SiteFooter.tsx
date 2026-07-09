@@ -44,8 +44,8 @@ export function SiteFooter({
               </span>
             </div>
             <p className="mt-4 font-body text-sm leading-relaxed text-ink/70">
-              Handcrafted wedding chocolate bomboniere and art chocolate boxes, made in
-              Australia. Curated artisan chocolates.
+              Handcrafted wedding chocolate bomboniere and art chocolate boxes, made in Australia.
+              Curated artisan chocolates.
             </p>
             <div className="mt-5 flex items-center gap-4">
               <a
@@ -55,7 +55,13 @@ export function SiteFooter({
                 aria-label="Zin Choc on Instagram"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-silver/60 text-ink transition-colors hover:border-gold hover:text-gold"
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                >
                   <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
                   <circle cx="12" cy="12" r="3.6" />
                   <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />

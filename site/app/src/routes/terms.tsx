@@ -13,7 +13,8 @@ export const Route = createFileRoute("/terms")({
   head: ({ loaderData }) => {
     const origin = loaderData?.origin ?? "";
     const title = "Terms of Sale | Zin Choc";
-    const description = "Terms of sale for Zin Choc made-to-order wedding chocolate, including deposits, delivery, allergens and your Australian Consumer Law rights.";
+    const description =
+      "Terms of sale for Zin Choc made-to-order wedding chocolate, including deposits, delivery, allergens and your Australian Consumer Law rights.";
     return {
       meta: [
         { title },

@@ -207,9 +207,14 @@ export function SettingsTab() {
         const lines = res.results.map((r) => {
           const label = r.source === "settings" ? "Key saved in Settings" : "Deploy secret key";
           return r.ok
-            ? `${label} (...${r.key_tail}): working. Card payments are live.`
+            ? `${label} (...${r.key_tail}): working.`
             : `${label} (...${r.key_tail}): FAILED - ${r.failure?.message ?? "unknown error"}`;
         });
+        lines.push(
+          res.card_active
+            ? "Direct card checkout is live for customers."
+            : "The direct card checkout button is hidden from customers until a test succeeds; the card payment link and PayPal remain available.",
+        );
         setStripeMessage(lines.join(" "));
       }
     } catch {
@@ -530,8 +535,9 @@ export function SettingsTab() {
             className={`mt-1 ${field}`}
           />
           <span className="mt-1 block font-body text-xs text-ink/55">
-            The link is a fallback only; when a Stripe key is configured below (or as a deploy
-            secret), card payments run live through Stripe Checkout instead.
+            Shown at checkout as the card option whenever direct Stripe Checkout is not active.
+            Create a Payment Link in your Stripe dashboard (Products, then Payment Links) and paste
+            it here; the customer&apos;s order reference is attached to the payment automatically.
           </span>
         </label>
         <div className="rounded-sm border border-ink/10 bg-panel/50 p-4">
@@ -539,7 +545,7 @@ export function SettingsTab() {
           <p className="mt-1 font-body text-xs text-ink/55">
             {stripeMasked
               ? `Card payments are live via Stripe Checkout (key ${stripeMasked}).`
-              : "No key configured; the card option is hidden at checkout. Paste a restricted Stripe secret key to activate card payments."}
+              : "No key configured, so the direct Stripe Checkout option is hidden. Customers can still pay by card through PayPal guest checkout or the card payment link above. Use Test card payments to check whether direct Stripe Checkout can run on this hosting."}
           </p>
           <input
             type="password"

@@ -11,7 +11,7 @@ export function applySecurityHeaders(response: Response): Response {
   // allowlist, so SAMEORIGIN/DENY would blank the preview — we deliberately DO
   // NOT set it and control framing via the CSP `frame-ancestors` allowlist.
   headers.set(
-    'Content-Security-Policy',
+    "Content-Security-Policy",
     "default-src 'self'; " +
       "script-src 'self' 'unsafe-inline'; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
@@ -25,11 +25,11 @@ export function applySecurityHeaders(response: Response): Response {
       // PayPal checkout form (cmd=_xclick) directly to paypal.com.
       "base-uri 'self'; form-action 'self' https://www.paypal.com",
   );
-  headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  headers.set('X-XSS-Protection', '0');
+  headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  headers.set("X-XSS-Protection", "0");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

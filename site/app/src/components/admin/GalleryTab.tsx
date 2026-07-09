@@ -148,9 +148,7 @@ export function GalleryTab() {
                   <input
                     type="text"
                     value={captionDrafts[img.id] ?? ""}
-                    onChange={(e) =>
-                      setCaptionDrafts((d) => ({ ...d, [img.id]: e.target.value }))
-                    }
+                    onChange={(e) => setCaptionDrafts((d) => ({ ...d, [img.id]: e.target.value }))}
                     className={`mt-1 ${field}`}
                   />
                 </label>
@@ -170,16 +168,36 @@ export function GalleryTab() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => move(img, "up")} disabled={i === 0} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label="Move image up">
+                <button
+                  type="button"
+                  onClick={() => move(img, "up")}
+                  disabled={i === 0}
+                  className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                  aria-label="Move image up"
+                >
                   Up
                 </button>
-                <button type="button" onClick={() => move(img, "down")} disabled={i === images.length - 1} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label="Move image down">
+                <button
+                  type="button"
+                  onClick={() => move(img, "down")}
+                  disabled={i === images.length - 1}
+                  className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                  aria-label="Move image down"
+                >
                   Down
                 </button>
-                <button type="button" onClick={() => toggleVisible(img)} className={`${btn} border border-ink/25 text-ink`}>
+                <button
+                  type="button"
+                  onClick={() => toggleVisible(img)}
+                  className={`${btn} border border-ink/25 text-ink`}
+                >
                   {img.visible === 1 ? "Hide" : "Show"}
                 </button>
-                <button type="button" onClick={() => remove(img)} className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}>
+                <button
+                  type="button"
+                  onClick={() => remove(img)}
+                  className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+                >
                   Delete
                 </button>
               </div>

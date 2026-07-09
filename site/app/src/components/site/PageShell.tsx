@@ -51,7 +51,11 @@ export function PageHeader({
         {lastUpdated ? (
           <p className="mt-1 font-body text-sm text-ink/60">Last updated: {lastUpdated}</p>
         ) : null}
-        {intro ? <div className="mt-5 max-w-[65ch] font-body text-base leading-relaxed text-ink/75">{intro}</div> : null}
+        {intro ? (
+          <div className="mt-5 max-w-[65ch] font-body text-base leading-relaxed text-ink/75">
+            {intro}
+          </div>
+        ) : null}
       </div>
     </header>
   );

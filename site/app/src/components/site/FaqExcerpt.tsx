@@ -23,7 +23,13 @@ export function FaqExcerpt({ items, settings }: { items: FaqItem[]; settings: Se
                   aria-hidden="true"
                   className="mt-1 shrink-0 text-gold transition-transform duration-200 group-open:rotate-45"
                 >
-                  <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4">
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                  >
                     <path d="M10 4v12 M4 10h12" strokeLinecap="round" />
                   </svg>
                 </span>
@@ -40,9 +46,20 @@ export function FaqExcerpt({ items, settings }: { items: FaqItem[]; settings: Se
           className="group mt-10 inline-flex items-center gap-3 font-body text-sm font-medium tracking-wide text-ink transition-colors hover:text-gold"
         >
           Read all questions
-          <svg viewBox="0 0 32 12" aria-hidden="true" className="h-3 w-8 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5">
+          <svg
+            viewBox="0 0 32 12"
+            aria-hidden="true"
+            className="h-3 w-8 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5"
+          >
             <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1" />
-            <path d="M24 1 L30 6 L24 11" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M24 1 L30 6 L24 11"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </a>
       </div>

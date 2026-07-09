@@ -118,7 +118,10 @@ export function ProductsTab() {
   }
 
   async function remove(p: Product) {
-    if (typeof window !== "undefined" && !window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Delete "${p.name}"? This cannot be undone.`)
+    ) {
       return;
     }
     await adminDeleteProduct({ data: { id: p.id } });
@@ -185,9 +188,7 @@ export function ProductsTab() {
           <h3 className="font-display text-lg text-ink">
             {draft.id ? "Edit product" : "New product"}
           </h3>
-          {saveError ? (
-            <p className="mt-2 font-body text-sm text-[#8a2f2f]">{saveError}</p>
-          ) : null}
+          {saveError ? <p className="mt-2 font-body text-sm text-[#8a2f2f]">{saveError}</p> : null}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">Name</span>
@@ -324,8 +325,7 @@ export function ProductsTab() {
 
             <div className="min-w-0 flex-1">
               <p className="font-body text-sm font-semibold text-ink">
-                {p.name}{" "}
-                <span className="font-normal text-ink/50">({p.slug})</span>
+                {p.name} <span className="font-normal text-ink/50">({p.slug})</span>
                 {p.visible !== 1 ? (
                   <span className="ml-2 rounded-sm bg-ink/10 px-1.5 py-0.5 font-body text-[0.65rem] uppercase tracking-wide text-ink/60">
                     Hidden
@@ -339,17 +339,37 @@ export function ProductsTab() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => move(p, "up")} disabled={i === 0} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move ${p.name} up`}>
+              <button
+                type="button"
+                onClick={() => move(p, "up")}
+                disabled={i === 0}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move ${p.name} up`}
+              >
                 Up
               </button>
-              <button type="button" onClick={() => move(p, "down")} disabled={i === products.length - 1} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move ${p.name} down`}>
+              <button
+                type="button"
+                onClick={() => move(p, "down")}
+                disabled={i === products.length - 1}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move ${p.name} down`}
+              >
                 Down
               </button>
-              <button type="button" onClick={() => toggleVisible(p)} className={`${btn} border border-ink/25 text-ink`}>
+              <button
+                type="button"
+                onClick={() => toggleVisible(p)}
+                className={`${btn} border border-ink/25 text-ink`}
+              >
                 {p.visible === 1 ? "Hide" : "Show"}
               </button>
               <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
-                {uploadingId === p.id ? "Uploading..." : p.image_key ? "Replace photo" : "Upload photo"}
+                {uploadingId === p.id
+                  ? "Uploading..."
+                  : p.image_key
+                    ? "Replace photo"
+                    : "Upload photo"}
                 <input
                   ref={(el) => {
                     if (el) fileInputs.current.set(p.id, el);
@@ -374,7 +394,11 @@ export function ProductsTab() {
               >
                 Edit
               </button>
-              <button type="button" onClick={() => remove(p)} className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}>
+              <button
+                type="button"
+                onClick={() => remove(p)}
+                className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+              >
                 Delete
               </button>
             </div>

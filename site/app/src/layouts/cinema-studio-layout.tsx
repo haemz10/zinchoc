@@ -134,9 +134,7 @@ export function CinemaStudioLayout({
         {/* The feed pane: its own scroll container, so results scroll under
             the floating composer; pb-56 keeps the last row reachable. */}
         <main className="relative min-h-96 flex-1">
-          <div className="absolute inset-0 overflow-y-auto px-4 pb-56 pt-2 md:px-6">
-            {children}
-          </div>
+          <div className="absolute inset-0 overflow-y-auto px-4 pb-56 pt-2 md:px-6">{children}</div>
 
           <div className="absolute inset-x-0 bottom-4 z-10 mx-auto w-full max-w-3xl px-4">
             <div className="flex items-stretch gap-2">

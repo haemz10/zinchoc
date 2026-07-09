@@ -27,8 +27,7 @@ export function ProductTile({ product }: { product: Product }) {
             aria-hidden="true"
             className="absolute inset-0 opacity-[0.06]"
             style={{
-              backgroundImage:
-                "radial-gradient(circle at 50% 38%, #B9BCC2 0%, transparent 55%)",
+              backgroundImage: "radial-gradient(circle at 50% 38%, #B9BCC2 0%, transparent 55%)",
             }}
           />
           <HeartEyeMark variant="silver" className="h-14 w-14 opacity-90" />

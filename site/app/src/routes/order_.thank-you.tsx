@@ -4,6 +4,7 @@ import { SiteFooter } from "../components/site/SiteFooter";
 import { SiteHeader } from "../components/site/SiteHeader";
 import { StripeCardCta } from "../components/site/StripeCardCta";
 import { getThankYouData } from "../lib/api/order.functions";
+import { cardPaymentLink } from "../lib/payments";
 import { formatAud } from "../lib/types";
 
 // Order confirmation. Reached after payment (PayPal return URL) or from the
@@ -89,6 +90,16 @@ function ThankYouPage() {
                   </p>
                   {stripeEnabled ? (
                     <StripeCardCta reference={order.reference} totalCents={order.total_cents} />
+                  ) : null}
+                  {!stripeEnabled && settings.stripe_payment_link.trim() ? (
+                    <a
+                      href={cardPaymentLink(settings.stripe_payment_link, order.reference)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="mt-4 inline-flex items-center rounded-sm border border-ink px-6 py-3 font-body text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-px active:scale-[0.98]"
+                    >
+                      Pay {formatAud(order.total_cents)} by card
+                    </a>
                   ) : null}
                   {settings.paypal_email.trim() ? (
                     <form

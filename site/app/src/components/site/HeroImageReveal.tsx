@@ -11,13 +11,7 @@ import { SecondaryCta } from "./SecondaryCta";
 // small screens get the static full-bleed hero. No pinning, so a full-page
 // screenshot never shows a blank band.
 
-export function HeroImageReveal({
-  imageSrc,
-  settings,
-}: {
-  imageSrc: string;
-  settings: Settings;
-}) {
+export function HeroImageReveal({ imageSrc, settings }: { imageSrc: string; settings: Settings }) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inset, setInset] = useState(0); // 0 = full bleed; static-safe default
 

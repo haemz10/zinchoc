@@ -10,6 +10,7 @@ import {
   submitOrder,
   type SubmitOrderResult,
 } from "../lib/api/order.functions";
+import { cardPaymentLink } from "../lib/payments";
 import { formatAud, type Product, type Settings } from "../lib/types";
 
 // The order page: choose a piece, place the order (server-validated, minimum
@@ -622,7 +623,7 @@ function PaymentStep({
               <strong>{placed.reference}</strong> in the payment description.
             </p>
             <a
-              href={settings.stripe_payment_link}
+              href={cardPaymentLink(settings.stripe_payment_link, placed.reference)}
               target="_blank"
               rel="noreferrer noopener"
               onClick={() => choose("card_link")}

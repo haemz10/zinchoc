@@ -17,13 +17,7 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Collection({
-  products,
-  settings,
-}: {
-  products: Product[];
-  settings: Settings;
-}) {
+export function Collection({ products, settings }: { products: Product[]; settings: Settings }) {
   const showWedding = settings.show_collection_wedding === "1";
   const showArt = settings.show_collection_art === "1";
   const wedding = showWedding ? products.filter((p) => p.category !== "art") : [];
@@ -43,45 +37,51 @@ export function Collection({
         </div>
 
         {showWedding ? (
-        <div className="mt-14">
-          <GroupLabel>The Collection &middot; Wedding</GroupLabel>
-          {wedding.length > 0 ? (
-            <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
-              {wedding.map((product) => (
-                <ProductTile key={product.slug} product={product} />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
-              Wedding pieces are being prepared for the season.{" "}
-              <a href="#enquiry" className="text-ink underline decoration-gold underline-offset-4">
-                Tell us about your day
-              </a>
-              .
-            </p>
-          )}
-        </div>
+          <div className="mt-14">
+            <GroupLabel>The Collection &middot; Wedding</GroupLabel>
+            {wedding.length > 0 ? (
+              <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
+                {wedding.map((product) => (
+                  <ProductTile key={product.slug} product={product} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
+                Wedding pieces are being prepared for the season.{" "}
+                <a
+                  href="#enquiry"
+                  className="text-ink underline decoration-gold underline-offset-4"
+                >
+                  Tell us about your day
+                </a>
+                .
+              </p>
+            )}
+          </div>
         ) : null}
 
         {showArt ? (
-        <div className="mt-16">
-          <GroupLabel>The Collection &middot; Art</GroupLabel>
-          {art.length > 0 ? (
-            <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
-              {art.map((product) => (
-                <ProductTile key={product.slug} product={product} />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
-              Art bonbon boxes are joining the collection.{" "}
-              <a href="#enquiry" className="text-ink underline decoration-gold underline-offset-4">
-                Enquire to commission an early piece
-              </a>
-              .
-            </p>
-          )}
-        </div>
+          <div className="mt-16">
+            <GroupLabel>The Collection &middot; Art</GroupLabel>
+            {art.length > 0 ? (
+              <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
+                {art.map((product) => (
+                  <ProductTile key={product.slug} product={product} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
+                Art bonbon boxes are joining the collection.{" "}
+                <a
+                  href="#enquiry"
+                  className="text-ink underline decoration-gold underline-offset-4"
+                >
+                  Enquire to commission an early piece
+                </a>
+                .
+              </p>
+            )}
+          </div>
         ) : null}
 
         {/* Quiet commissions tile: not a product, a different treatment. */}
@@ -99,9 +99,20 @@ export function Collection({
           </div>
           <span className="inline-flex items-center gap-3 font-body text-sm font-medium tracking-wide text-ink transition-colors group-hover:text-gold">
             Enquire about a commission
-            <svg viewBox="0 0 32 12" aria-hidden="true" className="h-3 w-8 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5">
+            <svg
+              viewBox="0 0 32 12"
+              aria-hidden="true"
+              className="h-3 w-8 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5"
+            >
               <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1" />
-              <path d="M24 1 L30 6 L24 11" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M24 1 L30 6 L24 11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
         </a>

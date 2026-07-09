@@ -13,7 +13,8 @@ export const Route = createFileRoute("/shipping-refunds")({
   head: ({ loaderData }) => {
     const origin = loaderData?.origin ?? "";
     const title = "Shipping and Refunds | Zin Choc";
-    const description = "How Zin Choc ships temperature-sensitive chocolate cold-chain across Australia, and how damaged orders and refunds are handled under Australian Consumer Law.";
+    const description =
+      "How Zin Choc ships temperature-sensitive chocolate cold-chain across Australia, and how damaged orders and refunds are handled under Australian Consumer Law.";
     return {
       meta: [
         { title },

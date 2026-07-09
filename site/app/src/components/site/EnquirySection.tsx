@@ -120,12 +120,15 @@ export function EnquirySection({
                 <h3 className="font-display text-2xl text-ink">Thank you, your enquiry is in.</h3>
                 <p className="mt-4 font-body text-base leading-relaxed text-ink/75">
                   We have received your note and will reply within two business days. From there we
-                  arrange a tasting, prepare a design proposal, and once you approve it a 50% deposit
-                  secures your date.
+                  arrange a tasting, prepare a design proposal, and once you approve it a 50%
+                  deposit secures your date.
                 </p>
                 <p className="mt-4 font-body text-base leading-relaxed text-ink/75">
                   If your wedding is close, feel free to email us directly at{" "}
-                  <a href={`mailto:${settings.contact_email}`} className="text-ink underline decoration-gold underline-offset-4">
+                  <a
+                    href={`mailto:${settings.contact_email}`}
+                    className="text-ink underline decoration-gold underline-offset-4"
+                  >
                     {settings.contact_email}
                   </a>
                   .
@@ -312,7 +315,10 @@ export function EnquirySection({
                     <span className="font-body text-sm leading-relaxed text-ink/75">
                       I agree that Zin Choc may use the details above to respond to my enquiry, as
                       described in the{" "}
-                      <a href="/privacy" className="text-ink underline decoration-gold underline-offset-4">
+                      <a
+                        href="/privacy"
+                        className="text-ink underline decoration-gold underline-offset-4"
+                      >
                         privacy policy
                       </a>
                       .
@@ -333,7 +339,13 @@ export function EnquirySection({
                 >
                   {status === "submitting" ? (
                     <>
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <circle cx="12" cy="12" r="9" className="opacity-25" />
                         <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
                       </svg>

@@ -76,12 +76,7 @@ export type Settings = {
 
 export type OrderStatus = "pending_payment" | "paid" | "confirmed" | "cancelled";
 
-export const ORDER_STATUSES: OrderStatus[] = [
-  "pending_payment",
-  "paid",
-  "confirmed",
-  "cancelled",
-];
+export const ORDER_STATUSES: OrderStatus[] = ["pending_payment", "paid", "confirmed", "cancelled"];
 
 export type Order = {
   id: number;
