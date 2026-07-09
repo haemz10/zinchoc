@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream text-ink antialiased;
+  }
+}
+
+@layer utilities {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  /* Masonry-style columns for the community feed */
+  .masonry {
+    column-gap: 1rem;
+    column-count: 2;
+  }
+  @media (min-width: 768px) {
+    .masonry {
+      column-count: 3;
+    }
+  }
+  @media (min-width: 1100px) {
+    .masonry {
+      column-count: 4;
+    }
+  }
+  .masonry > * {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+}
