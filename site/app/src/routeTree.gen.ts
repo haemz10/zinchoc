@@ -24,6 +24,8 @@ import { Route as ImgSplatRouteImport } from './routes/img/$'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
 import { Route as ApiAdminLogoutRouteImport } from './routes/api/admin/logout'
 import { Route as ApiAdminLoginRouteImport } from './routes/api/admin/login'
+import { Route as ApiAdminImportRouteImport } from './routes/api/admin/import'
+import { Route as ApiAdminExportRouteImport } from './routes/api/admin/export'
 import { Route as ApiAdminOrdersCsvRouteImport } from './routes/api/admin/orders/csv'
 import { Route as ApiAdminEnquiriesCsvRouteImport } from './routes/api/admin/enquiries/csv'
 
@@ -102,6 +104,16 @@ const ApiAdminLoginRoute = ApiAdminLoginRouteImport.update({
   path: '/api/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminImportRoute = ApiAdminImportRouteImport.update({
+  id: '/api/admin/import',
+  path: '/api/admin/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminExportRoute = ApiAdminExportRouteImport.update({
+  id: '/api/admin/export',
+  path: '/api/admin/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminOrdersCsvRoute = ApiAdminOrdersCsvRouteImport.update({
   id: '/api/admin/orders/csv',
   path: '/api/admin/orders/csv',
@@ -126,6 +138,8 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/img/$': typeof ImgSplatRoute
   '/order/thank-you': typeof OrderThankYouRoute
+  '/api/admin/export': typeof ApiAdminExportRoute
+  '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
@@ -145,6 +159,8 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/img/$': typeof ImgSplatRoute
   '/order/thank-you': typeof OrderThankYouRoute
+  '/api/admin/export': typeof ApiAdminExportRoute
+  '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
@@ -165,6 +181,8 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/img/$': typeof ImgSplatRoute
   '/order_/thank-you': typeof OrderThankYouRoute
+  '/api/admin/export': typeof ApiAdminExportRoute
+  '/api/admin/import': typeof ApiAdminImportRoute
   '/api/admin/login': typeof ApiAdminLoginRoute
   '/api/admin/logout': typeof ApiAdminLogoutRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
@@ -186,6 +204,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/img/$'
     | '/order/thank-you'
+    | '/api/admin/export'
+    | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
     | '/api/admin/upload'
@@ -205,6 +225,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/img/$'
     | '/order/thank-you'
+    | '/api/admin/export'
+    | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
     | '/api/admin/upload'
@@ -224,6 +246,8 @@ export interface FileRouteTypes {
     | '/terms'
     | '/img/$'
     | '/order_/thank-you'
+    | '/api/admin/export'
+    | '/api/admin/import'
     | '/api/admin/login'
     | '/api/admin/logout'
     | '/api/admin/upload'
@@ -244,6 +268,8 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ImgSplatRoute: typeof ImgSplatRoute
   OrderThankYouRoute: typeof OrderThankYouRoute
+  ApiAdminExportRoute: typeof ApiAdminExportRoute
+  ApiAdminImportRoute: typeof ApiAdminImportRoute
   ApiAdminLoginRoute: typeof ApiAdminLoginRoute
   ApiAdminLogoutRoute: typeof ApiAdminLogoutRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
@@ -358,6 +384,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/import': {
+      id: '/api/admin/import'
+      path: '/api/admin/import'
+      fullPath: '/api/admin/import'
+      preLoaderRoute: typeof ApiAdminImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/export': {
+      id: '/api/admin/export'
+      path: '/api/admin/export'
+      fullPath: '/api/admin/export'
+      preLoaderRoute: typeof ApiAdminExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/orders/csv': {
       id: '/api/admin/orders/csv'
       path: '/api/admin/orders/csv'
@@ -388,6 +428,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ImgSplatRoute: ImgSplatRoute,
   OrderThankYouRoute: OrderThankYouRoute,
+  ApiAdminExportRoute: ApiAdminExportRoute,
+  ApiAdminImportRoute: ApiAdminImportRoute,
   ApiAdminLoginRoute: ApiAdminLoginRoute,
   ApiAdminLogoutRoute: ApiAdminLogoutRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,

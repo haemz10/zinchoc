@@ -102,6 +102,8 @@ export type Order = {
   consent_at: string | null;
   created_at: string;
   updated_at: string;
+  reminder_sent_at: string | null;
+  deleted_at: string | null;
 };
 
 export type Enquiry = {

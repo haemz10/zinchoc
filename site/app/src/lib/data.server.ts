@@ -398,6 +398,36 @@ export async function setOrderStatus(id: number, status: string): Promise<void> 
     .run();
 }
 
+/** Record the one-time payment reminder. Only flips when no reminder has been
+ * recorded yet; returns false if it was already sent (the once-only rule is
+ * enforced here, not in the UI). */
+export async function markOrderReminded(id: number): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const res = await db
+    .prepare(
+      "UPDATE orders SET reminder_sent_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND reminder_sent_at IS NULL",
+    )
+    .bind(id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+/** Soft delete / restore. Deleted orders keep their row (deleted_at set) so
+ * the admin can always undo. */
+export async function setOrderDeleted(id: number, deleted: boolean): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .prepare(
+      deleted
+        ? "UPDATE orders SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+        : "UPDATE orders SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(id)
+    .run();
+}
+
 // ---- Gallery ----------------------------------------------------------------
 
 export async function getVisibleGalleryImages(): Promise<GalleryImage[]> {

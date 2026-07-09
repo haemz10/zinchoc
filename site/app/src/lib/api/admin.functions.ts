@@ -5,8 +5,10 @@ import { z } from "zod";
 import { BRAND_COLOR_KEYS, DEFAULT_SETTINGS, HEX_COLOR_RE } from "../types";
 
 import { adminConfigured, hashPassword, isAuthed } from "../auth.server";
-import { stripeKeyMasked } from "../stripe.server";
+import { stripeDiagnostics, stripeKeyMasked, validateStripeKey } from "../stripe.server";
 import {
+  markOrderReminded,
+  setOrderDeleted,
   createFaqItem,
   createProduct,
   deleteFaqItem,
@@ -208,6 +210,30 @@ export const adminSetOrderStatus = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** One-time payment reminder marker. The reminder email itself opens in the
+ * owner's mail app (pre-written); this records that it was sent so the button
+ * can only ever be used once per order. */
+export const adminMarkOrderReminded = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const changed = await markOrderReminded(data.id);
+    if (!changed) {
+      return { ok: false as const, error: "A reminder was already sent for this order." };
+    }
+    return { ok: true as const };
+  });
+
+export const adminSetOrderDeleted = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.number().int(), deleted: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await setOrderDeleted(data.id, data.deleted);
+    return { ok: true as const };
+  });
+
 export const adminListGallery = createServerFn({ method: "POST" }).handler(async () => {
   await requireAdmin();
   return { images: await getAllGalleryImages() };
@@ -252,7 +278,9 @@ export const adminDeleteGalleryImage = createServerFn({ method: "POST" })
   });
 
 export const adminClearSiteImage = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ slot: z.enum(["hero", "story", "logo"]) }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ slot: z.enum(["hero", "story", "logo"]) }).parse(data),
+  )
   .handler(async ({ data }) => {
     await requireAdmin();
     await setSetting(`${data.slot}_image_key`, "");
@@ -380,15 +408,43 @@ export const adminChangePassword = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+function fnOrigin(): string {
+  try {
+    return new URL(getRequest().url).origin;
+  } catch {
+    return "";
+  }
+}
+
+/** Save the Stripe key only after Stripe itself accepts it: a $1 diagnostic
+ * Checkout session is created and immediately expired (nothing is charged).
+ * A key Stripe rejects is never stored, so a typo cannot break card payments. */
 export const adminSetStripeKey = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({ key: z.string().trim().min(8).max(300) }).parse(data),
   )
   .handler(async ({ data }) => {
     await requireAdmin();
+    const check = await validateStripeKey(data.key, fnOrigin());
+    if (!check.ok) {
+      return {
+        ok: false as const,
+        error: `Stripe rejected this key (${check.failure.code}): ${check.failure.message} The key was not saved.`,
+        masked: await stripeKeyMasked(),
+      };
+    }
     await setSetting("stripe_secret_key", data.key);
     return { ok: true as const, masked: await stripeKeyMasked() };
   });
+
+/** Test the live card-payment path with the currently configured key(s).
+ * Creates and immediately expires a $1 diagnostic Checkout session per key;
+ * nothing is charged and nothing payable is left behind. */
+export const adminTestStripe = createServerFn({ method: "POST" }).handler(async () => {
+  await requireAdmin();
+  const results = await stripeDiagnostics(fnOrigin());
+  return { results };
+});
 
 export const adminClearStripeKey = createServerFn({ method: "POST" }).handler(async () => {
   await requireAdmin();

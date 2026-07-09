@@ -3,8 +3,8 @@ import { useState } from "react";
 
 import { SiteFooter } from "../components/site/SiteFooter";
 import { SiteHeader } from "../components/site/SiteHeader";
+import { StripeCardCta } from "../components/site/StripeCardCta";
 import {
-  createStripeCheckout,
   getOrderPageData,
   recordPaymentMethod,
   submitOrder,
@@ -46,8 +46,16 @@ const errorClass = "mt-1 font-body text-sm text-[#8a2f2f]";
 type Placed = Extract<SubmitOrderResult, { ok: true }>;
 
 function OrderPage() {
-  const { settings, products, product, origin, dbReady, faqVisible, galleryVisible, stripeEnabled } =
-    Route.useLoaderData();
+  const {
+    settings,
+    products,
+    product,
+    origin,
+    dbReady,
+    faqVisible,
+    galleryVisible,
+    stripeEnabled,
+  } = Route.useLoaderData();
 
   return (
     <>
@@ -97,9 +105,20 @@ function PieceChooser({ products }: { products: Product[] }) {
                   {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order}
                 </span>
               </span>
-              <svg viewBox="0 0 32 12" aria-hidden="true" className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5">
+              <svg
+                viewBox="0 0 32 12"
+                aria-hidden="true"
+                className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5"
+              >
                 <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1" />
-                <path d="M24 1 L30 6 L24 11" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M24 1 L30 6 L24 11"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </a>
           </li>
@@ -645,7 +664,9 @@ function PaymentStep({
                 onClick={() => choose("bank_transfer")}
                 className="mt-3 inline-flex items-center rounded-sm border border-ink/25 px-4 py-2 font-body text-xs font-medium text-ink transition-transform active:scale-[0.98]"
               >
-                {chosen === "bank_transfer" ? "Noted, paying by transfer" : "I will pay by transfer"}
+                {chosen === "bank_transfer"
+                  ? "Noted, paying by transfer"
+                  : "I will pay by transfer"}
               </button>
             </>
           ) : (
@@ -677,56 +698,6 @@ function PaymentStep({
       >
         Continue to your order confirmation
       </a>
-    </div>
-  );
-}
-
-// "Pay by card" (Stripe Checkout): its own garment, distinct from the gold
-// PayPal seal and the ink Place-order bar: an ink-framed button whose frame
-// fills from the left with ink on hover, label swapping to beige, with a
-// composed loading state while the checkout session is created.
-function StripeCardCta({ reference, totalCents }: { reference: string; totalCents: number }) {
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function pay() {
-    setState("loading");
-    setMessage("");
-    try {
-      const result = await createStripeCheckout({ data: { reference } });
-      if (result.ok) {
-        window.location.href = result.url;
-      } else {
-        setState("error");
-        setMessage(result.error);
-      }
-    } catch {
-      setState("error");
-      setMessage("Card payment is temporarily unavailable, please choose another method.");
-    }
-  }
-
-  return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={pay}
-        disabled={state === "loading"}
-        className="group relative inline-flex items-center overflow-hidden rounded-sm border border-ink px-6 py-3 font-body text-sm font-semibold text-ink transition-colors duration-300 hover:text-beige active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-      >
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-300 ease-out group-hover:scale-x-100"
-        />
-        <span className="relative z-10">
-          {state === "loading"
-            ? "Opening secure checkout..."
-            : `Pay ${formatAud(totalCents)} by card`}
-        </span>
-      </button>
-      {state === "error" && message ? (
-        <p className="mt-2 font-body text-sm text-[#8a2f2f]">{message}</p>
-      ) : null}
     </div>
   );
 }

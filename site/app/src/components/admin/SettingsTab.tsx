@@ -9,6 +9,7 @@ import {
   adminSaveColors,
   adminSaveSettings,
   adminSetStripeKey,
+  adminTestStripe,
 } from "../../lib/api/admin.functions";
 import { BRAND_COLOR_KEYS, HEX_COLOR_RE, type Settings } from "../../lib/types";
 
@@ -181,11 +182,38 @@ export function SettingsTab() {
     setStripeMessage("");
     try {
       const res = await adminSetStripeKey({ data: { key: stripeKeyInput.trim() } });
-      setStripeKeyInput("");
       setStripeMasked(res.masked);
-      setStripeMessage("Stripe key saved. Card payments are live.");
+      if (res.ok) {
+        setStripeKeyInput("");
+        setStripeMessage("Stripe accepted the key. It is saved and card payments are live.");
+      } else {
+        setStripeMessage(res.error);
+      }
     } catch {
       setStripeMessage("Could not save the key. Please try again.");
+    } finally {
+      setStripeBusy(false);
+    }
+  }
+
+  async function testStripe() {
+    setStripeBusy(true);
+    setStripeMessage("");
+    try {
+      const res = await adminTestStripe();
+      if (res.results.length === 0) {
+        setStripeMessage("No Stripe key is configured, so the card option is hidden at checkout.");
+      } else {
+        const lines = res.results.map((r) => {
+          const label = r.source === "settings" ? "Key saved in Settings" : "Deploy secret key";
+          return r.ok
+            ? `${label} (...${r.key_tail}): working. Card payments are live.`
+            : `${label} (...${r.key_tail}): FAILED - ${r.failure?.message ?? "unknown error"}`;
+        });
+        setStripeMessage(lines.join(" "));
+      }
+    } catch {
+      setStripeMessage("Could not run the test. Please try again.");
     } finally {
       setStripeBusy(false);
     }
@@ -531,6 +559,15 @@ export function SettingsTab() {
             >
               {stripeBusy ? "Working..." : "Save key"}
             </button>
+            <button
+              type="button"
+              onClick={testStripe}
+              disabled={stripeBusy}
+              className={`${btn} border border-ink/25 text-ink disabled:opacity-50`}
+              title="Creates and immediately cancels a $1 test checkout session. Nothing is charged."
+            >
+              Test card payments
+            </button>
             {stripeMasked ? (
               <button
                 type="button"
@@ -541,10 +578,10 @@ export function SettingsTab() {
                 Clear key
               </button>
             ) : null}
-            {stripeMessage ? (
-              <span className="font-body text-xs text-ink/60">{stripeMessage}</span>
-            ) : null}
           </div>
+          {stripeMessage ? (
+            <p className="mt-2 font-body text-xs leading-relaxed text-ink/70">{stripeMessage}</p>
+          ) : null}
         </div>
         <div className="flex items-center gap-3 pt-1">
           <button

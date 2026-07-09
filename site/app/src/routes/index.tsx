@@ -23,12 +23,20 @@ export const Route = createFileRoute("/")({
       meta: [
         { title },
         { name: "description", content: description },
+        { name: "author", content: "Zin Choc" },
         { name: "robots", content: "index, follow, max-image-preview:large" },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Zin Choc" },
-        ...(origin ? [{ property: "og:url", content: `${origin}/` }] : []),
+        ...(origin
+          ? [
+              { property: "og:url", content: `${origin}/` },
+              { property: "og:image", content: `${origin}/og-cover.jpg` },
+              { name: "twitter:card", content: "summary_large_image" },
+              { name: "twitter:image", content: `${origin}/og-cover.jpg` },
+            ]
+          : []),
       ],
       links: origin ? [{ rel: "canonical", href: `${origin}/` }] : [],
     };
@@ -65,6 +73,23 @@ function Home() {
         ...(origin ? { url: origin } : {}),
         inLanguage: "en-AU",
       },
+      // Each catalogue piece as a Product with a live AUD offer, so the
+      // collection is eligible for rich results and shopping surfaces.
+      ...products.map((p) => ({
+        "@type": "Product",
+        "@id": origin ? `${origin}/#product-${p.slug}` : `#product-${p.slug}`,
+        name: p.name,
+        description: p.description,
+        ...(p.image_key && origin ? { image: `${origin}/img/${p.image_key}` } : {}),
+        brand: { "@type": "Brand", name: "Zin Choc" },
+        offers: {
+          "@type": "Offer",
+          price: (p.price_cents / 100).toFixed(2),
+          priceCurrency: "AUD",
+          availability: "https://schema.org/InStock",
+          ...(origin ? { url: `${origin}/order?piece=${encodeURIComponent(p.slug)}` } : {}),
+        },
+      })),
     ],
   });
 
