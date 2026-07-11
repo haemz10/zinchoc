@@ -3,6 +3,7 @@ import { Hero } from "@/components/hero";
 import { Feed } from "@/components/feed";
 import { Marketplace } from "@/components/marketplace";
 import { Communities } from "@/components/communities";
+import { Waitlist } from "@/components/waitlist";
 import { SiteFooter } from "@/components/site-footer";
 
 export default function HomePage() {
@@ -13,6 +14,7 @@ export default function HomePage() {
       <Feed />
       <Marketplace />
       <Communities />
+      <Waitlist />
       <SiteFooter />
     </main>
   );
