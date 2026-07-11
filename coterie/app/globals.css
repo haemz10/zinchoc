@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-serif: "Fraunces", Georgia, serif;
-}
+/* --font-sans / --font-serif are provided by next/font in app/layout.tsx */
 
 @layer base {
   html {

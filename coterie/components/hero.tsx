@@ -53,7 +53,7 @@ export function Hero() {
               Explore communities
             </a>
             <a
-              href="#"
+              href="#communities"
               className="rounded-full border border-ink/15 bg-white px-6 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/40"
             >
               Start your own

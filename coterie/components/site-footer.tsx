@@ -1,3 +1,19 @@
+type FooterLink = { label: string; href: string };
+
+const platformLinks: FooterLink[] = [
+  { label: "Explore", href: "/#feed" },
+  { label: "Marketplace", href: "/#marketplace" },
+  { label: "Communities", href: "/#communities" },
+  { label: "Start a community", href: "/#communities" },
+];
+
+const companyLinks: FooterLink[] = [
+  { label: "About", href: "/" },
+  { label: "Privacy", href: "/legal" },
+  { label: "Terms", href: "/legal" },
+  { label: "Contact", href: "mailto:hello@coterie.club" },
+];
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-black/5 bg-ink text-cream">
@@ -16,23 +32,17 @@ export function SiteFooter() {
             </p>
           </div>
 
-          <FooterCol
-            title="Platform"
-            links={["Explore", "Marketplace", "Communities", "Start a community"]}
-          />
-          <FooterCol
-            title="Company"
-            links={["About", "Privacy", "Terms", "Contact"]}
-          />
+          <FooterCol title="Platform" links={platformLinks} />
+          <FooterCol title="Company" links={companyLinks} />
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-cream/10 pt-6 text-sm text-cream/50 sm:flex-row sm:items-center">
           <p>© 2026 Coterie. Made with care, not ads.</p>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-cream">
+            <a href="/legal" className="hover:text-cream">
               Privacy
             </a>
-            <a href="#" className="hover:text-cream">
+            <a href="/legal" className="hover:text-cream">
               Terms
             </a>
           </div>
@@ -42,7 +52,7 @@ export function SiteFooter() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: string[] }) {
+function FooterCol({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
       <h4 className="text-sm font-semibold uppercase tracking-widest text-cream/40">
@@ -50,9 +60,9 @@ function FooterCol({ title, links }: { title: string; links: string[] }) {
       </h4>
       <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
-          <li key={l}>
-            <a href="#" className="text-sm text-cream/70 hover:text-cream">
-              {l}
+          <li key={l.label}>
+            <a href={l.href} className="text-sm text-cream/70 hover:text-cream">
+              {l.label}
             </a>
           </li>
         ))}

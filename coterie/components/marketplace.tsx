@@ -18,7 +18,7 @@ export function Marketplace() {
             </p>
           </div>
           <a
-            href="#"
+            href="#marketplace"
             className="hidden shrink-0 rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold transition-colors hover:border-ink/40 sm:block"
           >
             Browse marketplace
