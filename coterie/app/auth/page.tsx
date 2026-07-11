@@ -18,6 +18,23 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set once the confirmation email has been sent — shows the check-inbox view.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
+
+  async function resend() {
+    if (!sentTo || busy) return;
+    setBusy(true);
+    const supabase = supabaseBrowser();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: sentTo,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+    setBusy(false);
+    setResent(!error);
+    if (error) setError(error.message);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +57,8 @@ export default function AuthPage() {
           email: email.trim(),
           password,
           options: {
+            // Return to whatever domain the user signed up on.
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               username: cleanUsername,
               display_name: displayName.trim() || cleanUsername,
@@ -51,10 +70,8 @@ export default function AuthPage() {
           return;
         }
         if (!data.session) {
-          setNotice(
-            "Almost there — check your inbox and click the confirmation link, then sign in."
-          );
-          setMode("signin");
+          // Email confirmation is on — tell them to check their inbox.
+          setSentTo(email.trim());
           return;
         }
         router.push("/");
@@ -65,7 +82,11 @@ export default function AuthPage() {
           password,
         });
         if (error) {
-          setError(error.message);
+          setError(
+            error.message.toLowerCase().includes("not confirmed")
+              ? "Please confirm your email first — check your inbox for the link."
+              : error.message
+          );
           return;
         }
         router.push("/");
@@ -74,6 +95,66 @@ export default function AuthPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (sentTo) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="container-page flex min-h-[70vh] items-center justify-center py-16">
+          <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-moss/10 text-2xl">
+              ✉️
+            </div>
+            <h1 className="mt-5 font-serif text-3xl font-semibold tracking-tight">
+              Check your inbox
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-ink/70">
+              We sent a confirmation link to{" "}
+              <span className="font-semibold text-ink">{sentTo}</span>. Click it
+              to activate your account, then come back and sign in.
+            </p>
+            <p className="mt-2 text-xs text-ink/50">
+              Can&apos;t find it? Check spam, or resend below.
+            </p>
+
+            {resent ? (
+              <p className="mt-6 rounded-2xl bg-moss/10 px-4 py-3 text-sm font-medium text-moss">
+                Sent again — give it a minute.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={resend}
+                disabled={busy}
+                className="mt-6 w-full rounded-full border border-ink/15 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/40 disabled:opacity-60"
+              >
+                {busy ? "Resending…" : "Resend confirmation link"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setSentTo(null);
+                setResent(false);
+                setMode("signin");
+              }}
+              className="mt-3 w-full rounded-full bg-ink py-3 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+            >
+              I&apos;ve confirmed — sign in
+            </button>
+
+            {error && (
+              <p role="alert" className="mt-3 text-sm font-medium text-clay">
+                {error}
+              </p>
+            )}
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
   }
 
   return (
