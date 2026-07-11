@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const nav = [
   { label: "Explore", href: "/#feed" },
@@ -9,7 +11,30 @@ const nav = [
 ];
 
 export function SiteHeader() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = supabaseBrowser();
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null);
+      const meta = data.user?.user_metadata as { username?: string } | undefined;
+      setUsername(meta?.username ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setEmail(session?.user?.email ?? null);
+      const meta = session?.user?.user_metadata as { username?: string } | undefined;
+      setUsername(meta?.username ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function signOut() {
+    await supabaseBrowser().auth.signOut();
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-cream/85 backdrop-blur-md">
@@ -36,12 +61,35 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href="/#communities"
-            className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
-          >
-            Create a community
-          </a>
+          {email ? (
+            <>
+              <span className="hidden max-w-[14ch] truncate text-sm font-semibold text-ink/70 sm:block">
+                @{username ?? email.split("@")[0]}
+              </span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink/40"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <a
+                href="/auth"
+                className="hidden text-sm font-medium text-ink/70 transition-colors hover:text-ink sm:block"
+              >
+                Sign in
+              </a>
+              <a
+                href="/auth"
+                className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+              >
+                Join Coterie
+              </a>
+            </>
+          )}
 
           {/* Mobile menu toggle */}
           <button
@@ -92,11 +140,31 @@ export function SiteHeader() {
                 key={item.label}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 last:border-b-0 hover:text-ink"
+                className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
               >
                 {item.label}
               </a>
             ))}
+            {email ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  void signOut();
+                }}
+                className="py-3 text-left text-sm font-medium text-ink/80 hover:text-ink"
+              >
+                Sign out
+              </button>
+            ) : (
+              <a
+                href="/auth"
+                onClick={() => setOpen(false)}
+                className="py-3 text-sm font-medium text-ink/80 hover:text-ink"
+              >
+                Sign in / Join
+              </a>
+            )}
           </div>
         </nav>
       )}

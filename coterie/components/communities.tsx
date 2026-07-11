@@ -1,6 +1,20 @@
 import { communities } from "@/lib/data";
+import type { MemberCounts } from "@/lib/db";
+import { JoinButton } from "./join-button";
 
-export function Communities() {
+// Maps homepage display cards to database community ids.
+const dbIds: Record<string, string> = {
+  c1: "slow-ceramics",
+  c2: "sourdough-club",
+  c3: "35mm-wanderers",
+  c4: "rare-aroids",
+};
+
+export function Communities({
+  memberCounts = {},
+}: {
+  memberCounts?: MemberCounts;
+}) {
   return (
     <section id="communities" className="border-t border-black/5 bg-white/60 py-16">
       <div className="container-page">
@@ -41,13 +55,13 @@ export function Communities() {
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-serif text-lg font-semibold">{c.name}</h3>
                   <span className="shrink-0 text-xs font-medium text-ink/50">
-                    {c.members} members
+                    {(memberCounts[dbIds[c.id]] ?? 0) > 0
+                      ? `${memberCounts[dbIds[c.id]]} member${memberCounts[dbIds[c.id]] === 1 ? "" : "s"}`
+                      : "Be the first to join"}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-ink/60">{c.blurb}</p>
-                <button className="mt-4 w-full rounded-full border border-ink/15 py-2 text-sm font-semibold transition-colors hover:bg-ink hover:text-cream">
-                  Join community
-                </button>
+                <JoinButton communityId={dbIds[c.id]} />
               </div>
             </article>
           ))}

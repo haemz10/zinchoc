@@ -62,9 +62,9 @@ export function Hero() {
 
           <dl className="mt-10 flex gap-8">
             {[
-              ["1,200+", "communities"],
+              ["4", "founding communities"],
               ["Ad-free", "always"],
-              ["Made by", "members"],
+              ["Member", "owned"],
             ].map(([big, small]) => (
               <div key={small}>
                 <dt className="font-serif text-2xl font-semibold">{big}</dt>

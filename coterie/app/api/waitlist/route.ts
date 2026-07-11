@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-
-// Supabase publishable key — safe to ship: the waitlist table is
-// insert-only under RLS (no read/update/delete for anonymous clients).
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://anwjhnbqqwseyvzctmyl.supabase.co";
-const SUPABASE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  "sb_publishable_k1FXXVbha2EvelMnousfVQ_dcWGLWDi";
+import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase-config";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

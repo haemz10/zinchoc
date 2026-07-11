@@ -1,0 +1,216 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+
+type Mode = "signin" | "signup";
+
+export default function AuthPage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const supabase = supabaseBrowser();
+
+    try {
+      if (mode === "signup") {
+        const cleanUsername = username.trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,24}$/.test(cleanUsername)) {
+          setError(
+            "Username must be 3–24 characters: lowercase letters, numbers, underscores."
+          );
+          return;
+        }
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              username: cleanUsername,
+              display_name: displayName.trim() || cleanUsername,
+            },
+          },
+        });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+        if (!data.session) {
+          setNotice(
+            "Almost there — check your inbox and click the confirmation link, then sign in."
+          );
+          setMode("signin");
+          return;
+        }
+        router.push("/");
+        router.refresh();
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+        router.push("/");
+        router.refresh();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <SiteHeader />
+      <main className="container-page flex min-h-[70vh] items-center justify-center py-16">
+        <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white p-8 shadow-sm">
+          <h1 className="font-serif text-3xl font-semibold tracking-tight">
+            {mode === "signup" ? "Join Coterie" : "Welcome back"}
+          </h1>
+          <p className="mt-2 text-sm text-ink/60">
+            {mode === "signup"
+              ? "Create your member account — free, ad-free, forever."
+              : "Sign in to post and join communities."}
+          </p>
+
+          <div className="mt-6 grid grid-cols-2 rounded-full border border-ink/10 p-1 text-sm font-semibold">
+            {(["signup", "signin"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMode(m);
+                  setError(null);
+                }}
+                className={`rounded-full py-2 transition-colors ${
+                  mode === m ? "bg-ink text-cream" : "text-ink/60 hover:text-ink"
+                }`}
+              >
+                {m === "signup" ? "Create account" : "Sign in"}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={submit} className="mt-6 space-y-3">
+            {mode === "signup" && (
+              <>
+                <Field
+                  id="username"
+                  label="Username"
+                  value={username}
+                  onChange={setUsername}
+                  placeholder="e.g. maraclay"
+                  autoComplete="username"
+                />
+                <Field
+                  id="displayName"
+                  label="Display name"
+                  value={displayName}
+                  onChange={setDisplayName}
+                  placeholder="e.g. Mara Ellison"
+                  autoComplete="name"
+                />
+              </>
+            )}
+            <Field
+              id="email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+            <Field
+              id="password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder="At least 6 characters"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            />
+
+            {error && (
+              <p role="alert" className="text-sm font-medium text-clay">
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p role="status" className="rounded-xl bg-moss/10 px-4 py-3 text-sm font-medium text-moss">
+                {notice}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-full bg-ink py-3 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+            >
+              {busy
+                ? "One moment…"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Sign in"}
+            </button>
+          </form>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}
+
+function Field({
+  id,
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  autoComplete?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink/50">
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        minLength={type === "password" ? 6 : undefined}
+        className="w-full rounded-2xl border border-ink/15 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
+      />
+    </div>
+  );
+}

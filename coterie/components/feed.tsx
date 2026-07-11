@@ -1,6 +1,9 @@
 import { feed, type FeedPost } from "@/lib/data";
+import type { LivePost } from "@/lib/db";
+import { Composer } from "./composer";
+import { LivePostCard } from "./live-post-card";
 
-export function Feed() {
+export function Feed({ livePosts = [] }: { livePosts?: LivePost[] }) {
   return (
     <section id="feed" className="border-t border-black/5 bg-white/60 py-16">
       <div className="container-page">
@@ -14,15 +17,14 @@ export function Feed() {
               shooting right now — no algorithm deciding what you see.
             </p>
           </div>
-          <a
-            href="#feed"
-            className="hidden shrink-0 rounded-full border border-ink/15 px-5 py-2 text-sm font-semibold transition-colors hover:border-ink/40 sm:block"
-          >
-            See the full feed
-          </a>
         </div>
 
+        <Composer />
+
         <div className="masonry">
+          {livePosts.map((post) => (
+            <LivePostCard key={post.id} post={post} />
+          ))}
           {feed.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
