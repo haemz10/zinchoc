@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { LivePost } from "@/lib/db";
 import { Comments } from "./comments";
@@ -16,6 +17,7 @@ function timeAgo(iso: string): string {
 }
 
 export function LivePostCard({ post }: { post: LivePost }) {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [count, setCount] = useState(post.likes?.[0]?.count ?? 0);
@@ -23,6 +25,7 @@ export function LivePostCard({ post }: { post: LivePost }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(post.caption);
   const [removed, setRemoved] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -61,14 +64,11 @@ export function LivePostCard({ post }: { post: LivePost }) {
 
   async function deletePost() {
     if (busy) return;
-    if (!window.confirm("Delete this post? This can't be undone.")) return;
-    setBusy(true);
-    const { error } = await supabaseBrowser()
-      .from("coterie_posts")
-      .delete()
-      .eq("id", post.id);
-    setBusy(false);
-    if (!error) setRemoved(true);
+    // Optimistic: hide immediately (RLS guarantees only the owner gets here),
+    // then reconcile with the server so the state is correct either way.
+    setRemoved(true);
+    await supabaseBrowser().from("coterie_posts").delete().eq("id", post.id);
+    router.refresh();
   }
 
   if (removed) return null;
@@ -107,7 +107,7 @@ export function LivePostCard({ post }: { post: LivePost }) {
             <span className="text-xs text-ink/40">
               {timeAgo(post.created_at)}
             </span>
-            {isOwner && !editing && (
+            {isOwner && !editing && !confirmingDelete && (
               <>
                 <button
                   type="button"
@@ -121,10 +121,29 @@ export function LivePostCard({ post }: { post: LivePost }) {
                 </button>
                 <button
                   type="button"
-                  onClick={deletePost}
+                  onClick={() => setConfirmingDelete(true)}
                   className="text-xs font-medium text-ink/45 hover:text-clay"
                 >
                   Delete
+                </button>
+              </>
+            )}
+            {isOwner && confirmingDelete && (
+              <>
+                <button
+                  type="button"
+                  onClick={deletePost}
+                  disabled={busy}
+                  className="text-xs font-semibold text-clay hover:underline disabled:opacity-60"
+                >
+                  {busy ? "Deleting…" : "Confirm delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="text-xs font-medium text-ink/45 hover:text-ink"
+                >
+                  Cancel
                 </button>
               </>
             )}

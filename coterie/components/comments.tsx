@@ -36,6 +36,7 @@ export function Comments({
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -99,14 +100,18 @@ export function Comments({
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Delete this comment?")) return;
+    // Optimistic: drop it from the list immediately.
+    setConfirmDeleteId(null);
+    setCount((c) => Math.max(0, c - 1));
+    setComments((cs) => (cs ? cs.filter((c) => c.id !== id) : cs));
     const { error } = await supabaseBrowser()
       .from("coterie_comments")
       .delete()
       .eq("id", id);
-    if (!error) {
-      setCount((c) => Math.max(0, c - 1));
-      setComments((cs) => (cs ? cs.filter((c) => c.id !== id) : cs));
+    if (error) {
+      // Restore true state on failure.
+      setCount((c) => c + 1);
+      await load();
     }
   }
 
@@ -181,27 +186,45 @@ export function Comments({
                       <p className="mt-0.5 text-xs text-ink/45">
                         @{c.author?.username ?? "member"} ·{" "}
                         {timeAgo(c.created_at)}
-                        {userId === c.user_id && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingId(c.id);
-                                setEditDraft(c.body);
-                              }}
-                              className="ml-2 text-ink/40 underline-offset-2 hover:text-ink hover:underline"
-                            >
-                              edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => remove(c.id)}
-                              className="ml-2 text-ink/40 underline-offset-2 hover:text-clay hover:underline"
-                            >
-                              delete
-                            </button>
-                          </>
-                        )}
+                        {userId === c.user_id &&
+                          (confirmDeleteId === c.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => remove(c.id)}
+                                className="ml-2 font-semibold text-clay underline-offset-2 hover:underline"
+                              >
+                                confirm delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="ml-2 text-ink/40 hover:text-ink"
+                              >
+                                cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingId(c.id);
+                                  setEditDraft(c.body);
+                                }}
+                                className="ml-2 text-ink/40 underline-offset-2 hover:text-ink hover:underline"
+                              >
+                                edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(c.id)}
+                                className="ml-2 text-ink/40 underline-offset-2 hover:text-clay hover:underline"
+                              >
+                                delete
+                              </button>
+                            </>
+                          ))}
                       </p>
                     </>
                   )}

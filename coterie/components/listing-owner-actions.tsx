@@ -14,6 +14,7 @@ export function ListingOwnerActions({
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     supabaseBrowser()
@@ -25,7 +26,6 @@ export function ListingOwnerActions({
 
   async function remove() {
     if (busy) return;
-    if (!window.confirm("Delete this listing? This can't be undone.")) return;
     setBusy(true);
     const { error } = await supabaseBrowser()
       .from("coterie_listings")
@@ -33,10 +33,33 @@ export function ListingOwnerActions({
       .eq("id", listingId);
     if (error) {
       setBusy(false);
+      setConfirming(false);
       return;
     }
     router.push("/#marketplace");
     router.refresh();
+  }
+
+  if (confirming) {
+    return (
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="flex-1 rounded-full border border-ink/15 bg-white px-4 py-2.5 text-center text-sm font-semibold text-ink hover:border-ink/40"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={remove}
+          disabled={busy}
+          className="flex-1 rounded-full bg-clay px-4 py-2.5 text-center text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+        >
+          {busy ? "Deleting…" : "Confirm delete"}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -49,11 +72,10 @@ export function ListingOwnerActions({
       </a>
       <button
         type="button"
-        onClick={remove}
-        disabled={busy}
-        className="flex-1 rounded-full border border-clay/40 px-4 py-2.5 text-center text-sm font-semibold text-clay transition-colors hover:bg-clay/10 disabled:opacity-60"
+        onClick={() => setConfirming(true)}
+        className="flex-1 rounded-full border border-clay/40 px-4 py-2.5 text-center text-sm font-semibold text-clay transition-colors hover:bg-clay/10"
       >
-        {busy ? "Deleting…" : "Delete"}
+        Delete
       </button>
     </div>
   );

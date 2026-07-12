@@ -21,6 +21,7 @@ export function CommunityOwnerActions({
   const [nameDraft, setNameDraft] = useState(name);
   const [blurbDraft, setBlurbDraft] = useState(blurb);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,12 +58,6 @@ export function CommunityOwnerActions({
 
   async function remove() {
     if (busy) return;
-    if (
-      !window.confirm(
-        "Delete this community? All of its posts will be removed too. This can't be undone."
-      )
-    )
-      return;
     setBusy(true);
     const { error: delErr } = await supabaseBrowser()
       .from("coterie_communities")
@@ -70,6 +65,7 @@ export function CommunityOwnerActions({
       .eq("id", communityId);
     if (delErr) {
       setBusy(false);
+      setConfirming(false);
       return;
     }
     router.push("/#communities");
@@ -120,6 +116,31 @@ export function CommunityOwnerActions({
     );
   }
 
+  if (confirming) {
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+        <span className="text-ink/70">
+          Delete this community and all its posts?
+        </span>
+        <button
+          type="button"
+          onClick={remove}
+          disabled={busy}
+          className="rounded-full bg-clay px-4 py-1.5 font-semibold text-white disabled:opacity-60"
+        >
+          {busy ? "Deleting…" : "Yes, delete"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="font-semibold text-ink/60 hover:text-ink"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3 flex gap-3 text-sm">
       <button
@@ -135,9 +156,8 @@ export function CommunityOwnerActions({
       </button>
       <button
         type="button"
-        onClick={remove}
-        disabled={busy}
-        className="font-semibold text-ink/60 hover:text-clay disabled:opacity-60"
+        onClick={() => setConfirming(true)}
+        className="font-semibold text-ink/60 hover:text-clay"
       >
         Delete
       </button>
