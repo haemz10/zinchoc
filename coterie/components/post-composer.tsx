@@ -4,19 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
-const communities = [
-  { id: "slow-ceramics", name: "Slow Ceramics" },
-  { id: "sourdough-club", name: "Sourdough Club" },
-  { id: "35mm-wanderers", name: "35mm Wanderers" },
-  { id: "rare-aroids", name: "Rare Aroids" },
-];
+type CommunityOption = { id: string; name: string };
 
-export function Composer() {
+export function PostComposer({
+  communities,
+  fixedCommunityId,
+}: {
+  communities: CommunityOption[];
+  fixedCommunityId?: string;
+}) {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [caption, setCaption] = useState("");
-  const [communityId, setCommunityId] = useState(communities[0].id);
+  const [communityId, setCommunityId] = useState(
+    fixedCommunityId ?? communities[0]?.id ?? ""
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,14 +37,15 @@ export function Composer() {
 
   async function post(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId || busy) return;
+    const target = fixedCommunityId ?? communityId;
+    if (!userId || busy || !target) return;
     const text = caption.trim();
     if (!text) return;
     setBusy(true);
     setError(null);
     const { error } = await supabaseBrowser().from("coterie_posts").insert({
       user_id: userId,
-      community_id: communityId,
+      community_id: target,
       caption: text.slice(0, 500),
     });
     setBusy(false);
@@ -90,23 +94,29 @@ export function Composer() {
         className="w-full resize-none rounded-xl border border-ink/10 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <label htmlFor="composer-community" className="text-xs font-semibold uppercase tracking-wider text-ink/50">
-            Post to
-          </label>
-          <select
-            id="composer-community"
-            value={communityId}
-            onChange={(e) => setCommunityId(e.target.value)}
-            className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium"
-          >
-            {communities.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!fixedCommunityId && communities.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="composer-community"
+              className="text-xs font-semibold uppercase tracking-wider text-ink/50"
+            >
+              Post to
+            </label>
+            <select
+              id="composer-community"
+              value={communityId}
+              onChange={(e) => setCommunityId(e.target.value)}
+              className="rounded-full border border-ink/15 bg-white px-3 py-1.5 text-sm font-medium"
+            >
+              {communities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {fixedCommunityId && <span />}
         <div className="flex items-center gap-3">
           {error && (
             <p role="alert" className="text-sm font-medium text-clay">

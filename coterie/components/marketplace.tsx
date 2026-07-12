@@ -14,7 +14,7 @@ export function Marketplace() {
             </h2>
             <p className="mt-2 max-w-xl text-ink/60">
               Every listing is made by a person in a community you can join.
-              Buy directly from the maker — Coterie never takes an ad cut.
+              Buy directly from the maker — Coterie never takes a cut.
             </p>
           </div>
           <a

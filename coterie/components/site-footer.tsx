@@ -27,8 +27,8 @@ export function SiteFooter() {
               <span className="font-serif text-xl font-semibold">Coterie</span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/60">
-              Ad-free communities, beautifully quiet. A member-owned home for
-              the people and things you care about.
+              Member-owned communities, beautifully quiet. A home for the
+              people and things you care about.
             </p>
           </div>
 
@@ -37,7 +37,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-cream/10 pt-6 text-sm text-cream/50 sm:flex-row sm:items-center">
-          <p>© 2026 Coterie. Made with care, not ads.</p>
+          <p>© 2026 Coterie. Made with care, for members.</p>
           <div className="flex gap-5">
             <a href="/legal" className="hover:text-cream">
               Privacy

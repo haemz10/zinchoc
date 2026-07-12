@@ -1,9 +1,16 @@
 import { feed, type FeedPost } from "@/lib/data";
-import type { LivePost } from "@/lib/db";
-import { Composer } from "./composer";
+import type { Community, LivePost } from "@/lib/db";
+import { PostComposer } from "./post-composer";
 import { LivePostCard } from "./live-post-card";
 
-export function Feed({ livePosts = [] }: { livePosts?: LivePost[] }) {
+export function Feed({
+  livePosts = [],
+  communities = [],
+}: {
+  livePosts?: LivePost[];
+  communities?: Community[];
+}) {
+  const hasLive = livePosts.length > 0;
   return (
     <section id="feed" className="border-t border-black/5 bg-white/60 py-16">
       <div className="container-page">
@@ -19,14 +26,17 @@ export function Feed({ livePosts = [] }: { livePosts?: LivePost[] }) {
           </div>
         </div>
 
-        <Composer />
+        <PostComposer
+          communities={communities.map((c) => ({ id: c.id, name: c.name }))}
+        />
 
         <div className="masonry">
           {livePosts.map((post) => (
             <LivePostCard key={post.id} post={post} />
           ))}
+          {/* Showcase posts illustrate what a lively feed looks like. */}
           {feed.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} showcase={hasLive} />
           ))}
         </div>
       </div>
@@ -34,7 +44,7 @@ export function Feed({ livePosts = [] }: { livePosts?: LivePost[] }) {
   );
 }
 
-function PostCard({ post }: { post: FeedPost }) {
+function PostCard({ post, showcase }: { post: FeedPost; showcase?: boolean }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="relative overflow-hidden">
@@ -48,6 +58,11 @@ function PostCard({ post }: { post: FeedPost }) {
         <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
           {post.community}
         </span>
+        {showcase && (
+          <span className="absolute right-3 top-3 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-semibold text-ink/70 backdrop-blur-sm">
+            Example
+          </span>
+        )}
       </div>
 
       <div className="p-4">

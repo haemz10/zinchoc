@@ -1,10 +1,10 @@
 # Coterie
 
-**Ad-free communities, beautifully quiet.**
+**Member-owned communities, beautifully quiet.**
 
 Coterie is a member-owned home for niche communities. Members share photos and
 stories, help each other out, and trade the small-batch goods they make — with
-no ads and no algorithm deciding what you see.
+no algorithm deciding what you see.
 
 Homepage built with **Next.js 14 (App Router)**, **TypeScript**, and
 **Tailwind CSS**.

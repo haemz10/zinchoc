@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Coterie — Ad-free communities",
+    name: "Coterie — Member-owned communities",
     short_name: "Coterie",
     description:
-      "A member-owned home for niche communities. No ads. No algorithm. Just members.",
+      "A member-owned home for niche communities. No algorithm. Just members.",
     start_url: "/",
     display: "standalone",
     background_color: "#faf7f2",

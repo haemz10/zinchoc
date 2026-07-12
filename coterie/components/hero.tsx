@@ -11,7 +11,7 @@ export function Hero() {
         {/* Left: what this place is */}
         <div className="animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-widest text-ink/60">
-            Ad-free · Member-owned
+            Member-owned · Beautifully quiet
           </span>
 
           <h1 className="mt-5 font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
@@ -23,8 +23,8 @@ export function Hero() {
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink/70">
             Coterie is where niche communities gather to share photos and
             stories, help each other out, and trade what they make. Find your
-            people — or build a space that&apos;s entirely your own. No ads. No
-            algorithm. Just members.
+            people — or build a space that&apos;s entirely your own. No
+            algorithm deciding what you see. Just members.
           </p>
 
           {/* The marketplace line, promoted from the footer to the very top */}
@@ -62,8 +62,8 @@ export function Hero() {
 
           <dl className="mt-10 flex gap-8">
             {[
-              ["4", "founding communities"],
-              ["Ad-free", "always"],
+              ["Yours", "to build"],
+              ["No", "algorithm"],
               ["Member", "owned"],
             ].map(([big, small]) => (
               <div key={small}>

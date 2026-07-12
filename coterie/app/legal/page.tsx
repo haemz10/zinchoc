@@ -26,9 +26,9 @@ export default function LegalPage() {
             members first.
           </p>
           <p>
-            The short version we&apos;re committing to — no ads means no ad
-            tracking. Your photos, posts, and purchases belong to you, and we
-            will never sell your data.
+            The short version we&apos;re committing to — no tracking for
+            advertisers. Your photos, posts, and purchases belong to you, and
+            we will never sell your data.
           </p>
           <p>
             The full documents will live on this page. Questions in the

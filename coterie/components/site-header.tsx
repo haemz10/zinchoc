@@ -63,6 +63,13 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {email ? (
             <>
+              <a
+                href="/communities/new"
+                className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+              >
+                <span className="sm:hidden">＋</span>
+                <span className="hidden sm:inline">Create community</span>
+              </a>
               <span className="hidden max-w-[14ch] truncate text-sm font-semibold text-ink/70 sm:block">
                 @{username ?? email.split("@")[0]}
               </span>

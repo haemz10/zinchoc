@@ -3,16 +3,21 @@ import { Hero } from "@/components/hero";
 import { Feed } from "@/components/feed";
 import { Marketplace } from "@/components/marketplace";
 import { Communities } from "@/components/communities";
-import { Waitlist } from "@/components/waitlist";
+import { FoundingClub } from "@/components/founding-club";
 import { SiteFooter } from "@/components/site-footer";
-import { fetchLivePosts, fetchMemberCounts } from "@/lib/db";
+import {
+  fetchAllCommunities,
+  fetchLivePosts,
+  fetchMemberCounts,
+} from "@/lib/db";
 
-// The feed and member counts come from the database on every request.
+// Feed, communities, and member counts come from the database on every request.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [livePosts, memberCounts] = await Promise.all([
+  const [livePosts, communities, memberCounts] = await Promise.all([
     fetchLivePosts(),
+    fetchAllCommunities(),
     fetchMemberCounts(),
   ]);
 
@@ -20,10 +25,10 @@ export default async function HomePage() {
     <main>
       <SiteHeader />
       <Hero />
-      <Feed livePosts={livePosts} />
+      <Feed livePosts={livePosts} communities={communities} />
       <Marketplace />
-      <Communities memberCounts={memberCounts} />
-      <Waitlist />
+      <Communities communities={communities} memberCounts={memberCounts} />
+      <FoundingClub />
       <SiteFooter />
     </main>
   );

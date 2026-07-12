@@ -28,11 +28,11 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Coterie — Ad-free communities where members share, make, and trade",
+  title: "Coterie — Communities where members share, make, and trade",
   description:
-    "Coterie is a member-owned home for niche communities. Find your people or build a space of your own — no ads, no algorithms, just photos, stories, and small-batch goods from members across every community.",
+    "Coterie is a member-owned home for niche communities. Find your people or build a space of your own — no algorithm, just photos, stories, and small-batch goods from members across every community.",
   openGraph: {
-    title: "Coterie — Ad-free communities, beautifully quiet",
+    title: "Coterie — Member-owned communities, beautifully quiet",
     description:
       "Find your people or build a space that's entirely your own. Share photos and stories, and trade small-batch goods across every community.",
     type: "website",
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Coterie — Ad-free communities, beautifully quiet",
+    title: "Coterie — Member-owned communities, beautifully quiet",
     description:
-      "Find your people or build a space that's entirely your own. No ads. No algorithm. Just members.",
+      "Find your people or build a space that's entirely your own. No algorithm. Just members.",
     images: ["/img/post-p1.jpg"],
   },
 };

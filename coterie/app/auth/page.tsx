@@ -167,7 +167,7 @@ export default function AuthPage() {
           </h1>
           <p className="mt-2 text-sm text-ink/60">
             {mode === "signup"
-              ? "Create your member account — free, ad-free, forever."
+              ? "Create your member account — free, forever."
               : "Sign in to post and join communities."}
           </p>
 
