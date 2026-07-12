@@ -91,8 +91,11 @@ export async function fetchAllCommunities(): Promise<Community[]> {
 
 export type Listing = {
   id: string;
+  user_id: string;
   title: string;
   price: string;
+  currency: string;
+  buy_url: string | null;
   description: string | null;
   image: string | null;
   created_at: string;
@@ -100,12 +103,15 @@ export type Listing = {
   maker: { username: string; display_name: string } | null;
 };
 
+const LISTING_SELECT =
+  `id,user_id,title,price,currency,buy_url,description,image,created_at,` +
+  `community:coterie_communities(id,name),` +
+  `maker:coterie_profiles!coterie_listings_user_id_fkey(username,display_name)`;
+
 export async function fetchListings(): Promise<Listing[]> {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/coterie_listings?select=id,title,price,description,image,created_at,` +
-        `community:coterie_communities(id,name),` +
-        `maker:coterie_profiles!coterie_listings_user_id_fkey(username,display_name)` +
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
         `&order=created_at.desc&limit=30`,
       { headers, cache: "no-store" }
     );
@@ -113,6 +119,21 @@ export async function fetchListings(): Promise<Listing[]> {
     return (await res.json()) as Listing[];
   } catch {
     return [];
+  }
+}
+
+export async function fetchListing(id: string): Promise<Listing | null> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&id=eq.${encodeURIComponent(id)}&limit=1`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Listing[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
   }
 }
 

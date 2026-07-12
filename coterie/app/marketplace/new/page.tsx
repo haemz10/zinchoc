@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { uploadImage } from "@/lib/upload";
+import { CURRENCIES, currencyLabel, type Currency } from "@/lib/currency";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -16,6 +17,8 @@ export default function NewListingPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [buyUrl, setBuyUrl] = useState("");
   const [description, setDescription] = useState("");
   const [communityId, setCommunityId] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -52,7 +55,12 @@ export default function NewListingPage() {
       return;
     }
     if (!price.trim()) {
-      setError("Add a price (e.g. $30, or 'Free').");
+      setError("Add a price (e.g. 30, or 'Free').");
+      return;
+    }
+    const trimmedBuy = buyUrl.trim();
+    if (trimmedBuy && !/^https?:\/\/[^ ]+$/i.test(trimmedBuy)) {
+      setError("The buy link must be a full URL starting with http:// or https://");
       return;
     }
 
@@ -74,6 +82,8 @@ export default function NewListingPage() {
       community_id: communityId || null,
       title: title.trim().slice(0, 80),
       price: price.trim().slice(0, 20),
+      currency,
+      buy_url: trimmedBuy || null,
       description: description.trim().slice(0, 300) || null,
       image: imageUrl,
     });
@@ -144,7 +154,53 @@ export default function NewListingPage() {
               </div>
 
               <Field id="title" label="Title" value={title} onChange={setTitle} placeholder="e.g. Speckled stoneware mug" max={80} />
-              <Field id="price" label="Price" value={price} onChange={setPrice} placeholder="e.g. $38 or Free" max={20} />
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  Price
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    aria-label="Currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as Currency)}
+                    className="rounded-2xl border border-ink/15 bg-cream px-3 py-3 text-sm outline-none focus:border-ink/40"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {currencyLabel(c)}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    id="price"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="e.g. 38 or Free"
+                    maxLength={20}
+                    className="w-full flex-1 rounded-2xl border border-ink/15 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="buyUrl" className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  Buy link (optional)
+                </label>
+                <input
+                  id="buyUrl"
+                  type="url"
+                  value={buyUrl}
+                  onChange={(e) => setBuyUrl(e.target.value)}
+                  placeholder="https://your-shop.com/item — Etsy, your store, etc."
+                  className="w-full rounded-2xl border border-ink/15 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
+                />
+                <p className="mt-1 text-xs text-ink/45">
+                  Link buyers to a legitimate checkout, or leave blank and let
+                  them message you.
+                </p>
+              </div>
 
               <div>
                 <label htmlFor="description" className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink/50">

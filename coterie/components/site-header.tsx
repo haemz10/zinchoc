@@ -67,6 +67,12 @@ export function SiteHeader() {
           {email ? (
             <>
               <a
+                href="/messages"
+                className="hidden text-sm font-medium text-ink/70 transition-colors hover:text-ink sm:block"
+              >
+                Messages
+              </a>
+              <a
                 href="/communities/new"
                 className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
               >
@@ -156,16 +162,25 @@ export function SiteHeader() {
               </a>
             ))}
             {email ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  void signOut();
-                }}
-                className="py-3 text-left text-sm font-medium text-ink/80 hover:text-ink"
-              >
-                Sign out
-              </button>
+              <>
+                <a
+                  href="/messages"
+                  onClick={() => setOpen(false)}
+                  className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
+                >
+                  Messages
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    void signOut();
+                  }}
+                  className="py-3 text-left text-sm font-medium text-ink/80 hover:text-ink"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
               <a
                 href="/auth"

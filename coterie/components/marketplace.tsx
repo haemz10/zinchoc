@@ -1,5 +1,6 @@
 import { products } from "@/lib/data";
 import type { Listing } from "@/lib/db";
+import { formatPrice } from "@/lib/currency";
 
 export function Marketplace({ listings = [] }: { listings?: Listing[] }) {
   const hasListings = listings.length > 0;
@@ -31,14 +32,14 @@ export function Marketplace({ listings = [] }: { listings?: Listing[] }) {
         {hasListings ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {listings.map((l) => (
-              <article key={l.id}>
+              <a key={l.id} href={`/marketplace/${l.id}`} className="group">
                 <div className="relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-clay/15 via-cream to-moss/15">
                   {l.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={l.image}
                       alt={l.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
@@ -51,7 +52,7 @@ export function Marketplace({ listings = [] }: { listings?: Listing[] }) {
                   <div className="flex items-baseline justify-between gap-2">
                     <h3 className="truncate text-sm font-semibold">{l.title}</h3>
                     <span className="shrink-0 text-sm font-semibold text-clay">
-                      {l.price}
+                      {formatPrice(l.price, l.currency)}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-ink/50">
@@ -59,7 +60,7 @@ export function Marketplace({ listings = [] }: { listings?: Listing[] }) {
                     {l.community ? ` · ${l.community.name}` : ""}
                   </p>
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         ) : (
