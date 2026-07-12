@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { ensureProfile } from "@/lib/ensure-profile";
 
 const nav = [
   { label: "Explore", href: "/#feed" },
@@ -22,11 +23,13 @@ export function SiteHeader() {
       setEmail(data.user?.email ?? null);
       const meta = data.user?.user_metadata as { username?: string } | undefined;
       setUsername(meta?.username ?? null);
+      if (data.user) void ensureProfile(supabase, data.user);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setEmail(session?.user?.email ?? null);
       const meta = session?.user?.user_metadata as { username?: string } | undefined;
       setUsername(meta?.username ?? null);
+      if (session?.user) void ensureProfile(supabase, session.user);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
