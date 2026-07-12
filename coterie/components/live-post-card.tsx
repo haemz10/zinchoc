@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { LivePost } from "@/lib/db";
+import { Comments } from "./comments";
 
 function timeAgo(iso: string): string {
   const s = Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 1000));
@@ -93,6 +94,8 @@ export function LivePostCard({ post }: { post: LivePost }) {
             <span aria-hidden>{liked ? "♥" : "♡"}</span> {count}
           </button>
         </div>
+
+        <Comments postId={post.id} initialCount={post.comments?.[0]?.count ?? 0} />
       </div>
     </article>
   );

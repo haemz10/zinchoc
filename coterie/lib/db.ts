@@ -11,13 +11,15 @@ export type LivePost = {
   community: { id: string; name: string } | null;
   author: { username: string; display_name: string } | null;
   likes: { count: number }[];
+  comments: { count: number }[];
 };
 
 const POST_SELECT =
   `id,caption,created_at,` +
   `community:coterie_communities(id,name),` +
   `author:coterie_profiles!coterie_posts_user_id_fkey(username,display_name),` +
-  `likes:coterie_likes(count)`;
+  `likes:coterie_likes(count),` +
+  `comments:coterie_comments(count)`;
 
 export async function fetchLivePosts(): Promise<LivePost[]> {
   try {
@@ -82,6 +84,33 @@ export async function fetchAllCommunities(): Promise<Community[]> {
     );
     if (!res.ok) return [];
     return (await res.json()) as Community[];
+  } catch {
+    return [];
+  }
+}
+
+export type Listing = {
+  id: string;
+  title: string;
+  price: string;
+  description: string | null;
+  image: string | null;
+  created_at: string;
+  community: { id: string; name: string } | null;
+  maker: { username: string; display_name: string } | null;
+};
+
+export async function fetchListings(): Promise<Listing[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=id,title,price,description,image,created_at,` +
+        `community:coterie_communities(id,name),` +
+        `maker:coterie_profiles!coterie_listings_user_id_fkey(username,display_name)` +
+        `&order=created_at.desc&limit=30`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Listing[];
   } catch {
     return [];
   }

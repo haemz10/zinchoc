@@ -37,10 +37,10 @@ export function Hero() {
             </span>
             <span className="text-left">
               <span className="block text-sm font-semibold text-clay">
-                A marketplace is coming
+                Sell what you make
               </span>
               <span className="block text-sm text-ink/60">
-                Soon members will trade the small-batch goods they make.
+                List small-batch goods in the members&apos; marketplace.
               </span>
             </span>
           </a>

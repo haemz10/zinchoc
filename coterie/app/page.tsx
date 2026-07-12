@@ -7,18 +7,20 @@ import { FoundingClub } from "@/components/founding-club";
 import { SiteFooter } from "@/components/site-footer";
 import {
   fetchAllCommunities,
+  fetchListings,
   fetchLivePosts,
   fetchMemberCounts,
 } from "@/lib/db";
 
-// Feed, communities, and member counts come from the database on every request.
+// Feed, communities, listings, and counts come from the database each request.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [livePosts, communities, memberCounts] = await Promise.all([
+  const [livePosts, communities, memberCounts, listings] = await Promise.all([
     fetchLivePosts(),
     fetchAllCommunities(),
     fetchMemberCounts(),
+    fetchListings(),
   ]);
 
   return (
@@ -26,7 +28,7 @@ export default async function HomePage() {
       <SiteHeader />
       <Hero />
       <Feed livePosts={livePosts} communities={communities} />
-      <Marketplace />
+      <Marketplace listings={listings} />
       <Communities communities={communities} memberCounts={memberCounts} />
       <FoundingClub />
       <SiteFooter />
