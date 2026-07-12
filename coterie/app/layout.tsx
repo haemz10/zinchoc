@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 // Self-hosted via next/font: fonts are downloaded at build time and served
@@ -17,14 +18,6 @@ const inter = Inter({
   variable: "--font-sans",
   display: "swap",
 });
-
-// On Vercel, VERCEL_URL is set automatically; override with NEXT_PUBLIC_SITE_URL
-// once a custom domain exists.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
