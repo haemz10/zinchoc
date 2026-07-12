@@ -37,6 +37,9 @@ export default function NewListingPage() {
       .select("id,name")
       .order("created_at", { ascending: true })
       .then(({ data }) => setCommunities((data as Community[]) ?? []));
+    // Pre-select the community when arriving from a community page.
+    const preset = new URLSearchParams(window.location.search).get("community");
+    if (preset) setCommunityId(preset);
   }, []);
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -61,6 +64,10 @@ export default function NewListingPage() {
     const trimmedBuy = buyUrl.trim();
     if (trimmedBuy && !/^https?:\/\/[^ ]+$/i.test(trimmedBuy)) {
       setError("The buy link must be a full URL starting with http:// or https://");
+      return;
+    }
+    if (!communityId) {
+      setError("Choose the community you're selling in.");
       return;
     }
 
@@ -94,7 +101,7 @@ export default function NewListingPage() {
       return;
     }
 
-    router.push("/#marketplace");
+    router.push(`/c/${communityId}`);
     router.refresh();
   }
 
@@ -123,6 +130,19 @@ export default function NewListingPage() {
                 className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
               >
                 Join Coterie
+              </a>
+            </div>
+          ) : ready && userId && communities.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-clay/20 bg-cream p-5 text-center">
+              <p className="text-sm text-ink/70">
+                The marketplace lives inside communities. Create or join a
+                community first, then sell there.
+              </p>
+              <a
+                href="/communities/new"
+                className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+              >
+                Create a community
               </a>
             </div>
           ) : (
@@ -220,15 +240,16 @@ export default function NewListingPage() {
               {communities.length > 0 && (
                 <div>
                   <label htmlFor="community" className="mb-1 block text-xs font-semibold uppercase tracking-wider text-ink/50">
-                    Community (optional)
+                    Sell in which community?
                   </label>
                   <select
                     id="community"
+                    required
                     value={communityId}
                     onChange={(e) => setCommunityId(e.target.value)}
                     className="w-full rounded-2xl border border-ink/15 bg-cream px-4 py-3 text-sm outline-none focus:border-ink/40"
                   >
-                    <option value="">No community</option>
+                    <option value="">Choose a community…</option>
                     {communities.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}

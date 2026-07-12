@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MessageSellerButton } from "@/components/message-seller-button";
+import { ListingOwnerActions } from "@/components/listing-owner-actions";
 import { fetchListing } from "@/lib/db";
 import { formatPrice } from "@/lib/currency";
 
@@ -99,6 +100,10 @@ export default async function ListingPage({
               <MessageSellerButton
                 listingId={listing.id}
                 sellerId={listing.user_id}
+              />
+              <ListingOwnerActions
+                listingId={listing.id}
+                ownerId={listing.user_id}
               />
               <p className="text-center text-xs text-ink/45">
                 Coterie never takes a cut. Arrange payment and delivery directly

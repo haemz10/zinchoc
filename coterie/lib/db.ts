@@ -6,6 +6,7 @@ const headers = { apikey: SUPABASE_KEY };
 
 export type LivePost = {
   id: string;
+  user_id: string;
   caption: string;
   created_at: string;
   community: { id: string; name: string } | null;
@@ -15,7 +16,7 @@ export type LivePost = {
 };
 
 const POST_SELECT =
-  `id,caption,created_at,` +
+  `id,user_id,caption,created_at,` +
   `community:coterie_communities(id,name),` +
   `author:coterie_profiles!coterie_posts_user_id_fkey(username,display_name),` +
   `likes:coterie_likes(count),` +
@@ -112,6 +113,23 @@ export async function fetchListings(): Promise<Listing[]> {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&order=created_at.desc&limit=30`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Listing[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCommunityListings(
+  communityId: string
+): Promise<Listing[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&community_id=eq.${encodeURIComponent(communityId)}` +
         `&order=created_at.desc&limit=30`,
       { headers, cache: "no-store" }
     );

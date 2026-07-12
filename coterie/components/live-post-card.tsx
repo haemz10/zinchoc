@@ -19,6 +19,11 @@ export function LivePostCard({ post }: { post: LivePost }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [count, setCount] = useState(post.likes?.[0]?.count ?? 0);
+  const [caption, setCaption] = useState(post.caption);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(post.caption);
+  const [removed, setRemoved] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -36,6 +41,37 @@ export function LivePostCard({ post }: { post: LivePost }) {
       }
     });
   }, [post.id]);
+
+  const isOwner = userId === post.user_id;
+
+  async function saveEdit() {
+    const text = draft.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    const { error } = await supabaseBrowser()
+      .from("coterie_posts")
+      .update({ caption: text.slice(0, 500) })
+      .eq("id", post.id);
+    setBusy(false);
+    if (!error) {
+      setCaption(text);
+      setEditing(false);
+    }
+  }
+
+  async function deletePost() {
+    if (busy) return;
+    if (!window.confirm("Delete this post? This can't be undone.")) return;
+    setBusy(true);
+    const { error } = await supabaseBrowser()
+      .from("coterie_posts")
+      .delete()
+      .eq("id", post.id);
+    setBusy(false);
+    if (!error) setRemoved(true);
+  }
+
+  if (removed) return null;
 
   async function toggleLike() {
     if (!userId) {
@@ -67,10 +103,64 @@ export function LivePostCard({ post }: { post: LivePost }) {
           <span className="rounded-full bg-clay/10 px-2.5 py-1 text-xs font-semibold text-clay">
             {post.community?.name ?? "Coterie"}
           </span>
-          <span className="text-xs text-ink/40">{timeAgo(post.created_at)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-ink/40">
+              {timeAgo(post.created_at)}
+            </span>
+            {isOwner && !editing && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft(caption);
+                    setEditing(true);
+                  }}
+                  className="text-xs font-medium text-ink/45 hover:text-ink"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={deletePost}
+                  className="text-xs font-medium text-ink/45 hover:text-clay"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-ink/80">{post.caption}</p>
+        {editing ? (
+          <div className="mt-3">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              maxLength={500}
+              className="w-full resize-none rounded-xl border border-ink/15 bg-cream px-3 py-2 text-sm outline-none focus:border-ink/40"
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold text-ink/60 hover:text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={busy || !draft.trim()}
+                className="rounded-full bg-ink px-4 py-1.5 text-xs font-semibold text-cream disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-relaxed text-ink/80">{caption}</p>
+        )}
 
         <div className="mt-3 flex items-center justify-between gap-2">
           <div className="min-w-0">

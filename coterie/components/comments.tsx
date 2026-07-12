@@ -34,6 +34,8 @@ export function Comments({
   const [userId, setUserId] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -97,6 +99,7 @@ export function Comments({
   }
 
   async function remove(id: string) {
+    if (!window.confirm("Delete this comment?")) return;
     const { error } = await supabaseBrowser()
       .from("coterie_comments")
       .delete()
@@ -104,6 +107,21 @@ export function Comments({
     if (!error) {
       setCount((c) => Math.max(0, c - 1));
       setComments((cs) => (cs ? cs.filter((c) => c.id !== id) : cs));
+    }
+  }
+
+  async function saveEdit(id: string) {
+    const text = editDraft.trim();
+    if (!text) return;
+    const { error } = await supabaseBrowser()
+      .from("coterie_comments")
+      .update({ body: text.slice(0, 500) })
+      .eq("id", id);
+    if (!error) {
+      setComments((cs) =>
+        cs ? cs.map((c) => (c.id === id ? { ...c, body: text } : c)) : cs
+      );
+      setEditingId(null);
     }
   }
 
@@ -132,19 +150,61 @@ export function Comments({
             comments.map((c) => (
               <div key={c.id} className="flex gap-2 text-sm">
                 <div className="min-w-0 flex-1">
-                  <p className="leading-snug text-ink/80">{c.body}</p>
-                  <p className="mt-0.5 text-xs text-ink/45">
-                    @{c.author?.username ?? "member"} · {timeAgo(c.created_at)}
-                    {userId === c.user_id && (
-                      <button
-                        type="button"
-                        onClick={() => remove(c.id)}
-                        className="ml-2 text-ink/40 underline-offset-2 hover:text-clay hover:underline"
-                      >
-                        delete
-                      </button>
-                    )}
-                  </p>
+                  {editingId === c.id ? (
+                    <div>
+                      <input
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        maxLength={500}
+                        className="w-full rounded-full border border-ink/15 bg-cream px-3 py-1.5 text-sm outline-none focus:border-ink/40"
+                      />
+                      <div className="mt-1 flex gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => saveEdit(c.id)}
+                          className="font-semibold text-ink hover:underline"
+                        >
+                          save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="text-ink/45 hover:text-ink"
+                        >
+                          cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="leading-snug text-ink/80">{c.body}</p>
+                      <p className="mt-0.5 text-xs text-ink/45">
+                        @{c.author?.username ?? "member"} ·{" "}
+                        {timeAgo(c.created_at)}
+                        {userId === c.user_id && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingId(c.id);
+                                setEditDraft(c.body);
+                              }}
+                              className="ml-2 text-ink/40 underline-offset-2 hover:text-ink hover:underline"
+                            >
+                              edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => remove(c.id)}
+                              className="ml-2 text-ink/40 underline-offset-2 hover:text-clay hover:underline"
+                            >
+                              delete
+                            </button>
+                          </>
+                        )}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             ))
