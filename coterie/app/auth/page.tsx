@@ -21,6 +21,26 @@ export default function AuthPage() {
   // Set once the confirmation email has been sent — shows the check-inbox view.
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  // Password-reset flow.
+  const [resetting, setResetting] = useState(false);
+  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
+
+  async function requestReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabaseBrowser().auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo: `${window.location.origin}/auth/reset` }
+    );
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setResetSentTo(email.trim());
+  }
 
   async function resend() {
     if (!sentTo || busy) return;
@@ -95,6 +115,97 @@ export default function AuthPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Password reset — link sent confirmation.
+  if (resetSentTo) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="container-page flex min-h-[70vh] items-center justify-center py-16">
+          <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-moss/10 text-2xl">
+              🔑
+            </div>
+            <h1 className="mt-5 font-serif text-3xl font-semibold tracking-tight">
+              Reset link sent
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-ink/70">
+              If an account exists for{" "}
+              <span className="font-semibold text-ink">{resetSentTo}</span>,
+              we&apos;ve emailed a link to set a new password. Check your inbox
+              (and spam).
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setResetSentTo(null);
+                setResetting(false);
+                setMode("signin");
+              }}
+              className="mt-6 w-full rounded-full bg-ink py-3 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
+
+  // Password reset — request form.
+  if (resetting) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="container-page flex min-h-[70vh] items-center justify-center py-16">
+          <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white p-8 shadow-sm">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight">
+              Reset your password
+            </h1>
+            <p className="mt-2 text-sm text-ink/60">
+              Enter the email you signed up with — your login ID is your email
+              address — and we&apos;ll send a reset link.
+            </p>
+            <form onSubmit={requestReset} className="mt-6 space-y-3">
+              <Field
+                id="email"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+              {error && (
+                <p role="alert" className="text-sm font-medium text-clay">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-full bg-ink py-3 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+              >
+                {busy ? "Sending…" : "Send reset link"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetting(false);
+                  setError(null);
+                }}
+                className="w-full rounded-full py-2 text-sm font-semibold text-ink/60 hover:text-ink"
+              >
+                Back to sign in
+              </button>
+            </form>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
   }
 
   if (sentTo) {
@@ -228,6 +339,23 @@ export default function AuthPage() {
               placeholder="At least 6 characters"
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
             />
+
+            {mode === "signin" && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-ink/45">Your login ID is your email.</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetting(true);
+                    setError(null);
+                    setNotice(null);
+                  }}
+                  className="font-semibold text-ink/60 hover:text-ink"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {error && (
               <p role="alert" className="text-sm font-medium text-clay">
