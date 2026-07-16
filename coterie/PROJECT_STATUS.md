@@ -38,8 +38,8 @@ The **service_role** key is NOT in the code.
   upload, and an optional external **buy link**; listing detail `/marketplace/[id]`;
   edit/delete your own; **message the seller** (1:1 chat at `/messages`,
   realtime + polling fallback).
-- **Moderation:** members can **report** posts/listings/comments → `coterie_reports`
-  table (review in the Supabase dashboard; no in-app admin UI yet).
+- **Moderation:** members can **report** posts/listings/comments; **admins**
+  (profiles.is_admin; currently `johnnys2`) review + delete/dismiss at `/admin`.
 - **Founding Club** section + email waitlist (`coterie_waitlist`).
 - **Polish:** custom 404, error boundary, robots.txt, sitemap.xml, OG/Twitter
   cards, PWA manifest, no `window.confirm` (fast inline confirms), no hydration
@@ -70,12 +70,12 @@ Storage bucket: `coterie-media` (public, owner-scoped uploads).
    Providers → Email → Confirm email = ON. Prevents fake/spam accounts.
 3. **Turn on "Leaked password protection"**: Supabase → Authentication →
    Providers → Password → enable (HaveIBeenPwned check).
-4. **Move to a dedicated Supabase project (recommended).** This project is
-   shared with another app (`v0-community-platform-ui`) — same `auth.users`
-   and a foreign `handle_new_user()` trigger. If that other project is ever
-   reset/deleted, Coterie could break. A clean cutover needs care (migrating
-   the real users' accounts) and should be done with SMTP already in place as a
-   safety net. Ask the assistant to prepare + run the migration when ready.
+4. **Supabase is now Coterie-only (DONE).** The abandoned `v0-community-platform-ui`
+   footprint was removed from this project: its `on_auth_user_created` trigger,
+   `handle_new_user()` function, and unused tables (`profiles`, `posts`,
+   `communities`, etc.) were dropped. Only `coterie_*` tables and Coterie's own
+   trigger remain. No migration needed. Just don't delete this Supabase project
+   when cleaning up the old Vercel project.
 5. **Real legal review (optional).** `/legal` now has a solid Privacy Policy +
    Terms draft, but it's not lawyer-reviewed.
 

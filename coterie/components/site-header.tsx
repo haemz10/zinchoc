@@ -16,21 +16,30 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
-      const meta = data.user?.user_metadata as { username?: string } | undefined;
+    const hydrate = async (user: { id: string; email?: string; user_metadata?: unknown } | null) => {
+      setEmail(user?.email ?? null);
+      const meta = user?.user_metadata as { username?: string } | undefined;
       setUsername(meta?.username ?? null);
-      if (data.user) void ensureProfile(supabase, data.user);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setEmail(session?.user?.email ?? null);
-      const meta = session?.user?.user_metadata as { username?: string } | undefined;
-      setUsername(meta?.username ?? null);
-      if (session?.user) void ensureProfile(supabase, session.user);
-    });
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      void ensureProfile(supabase, user as never);
+      const { data: me } = await supabase
+        .from("coterie_profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+      setIsAdmin(Boolean(me?.is_admin));
+    };
+    supabase.auth.getUser().then(({ data }) => hydrate(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
+      hydrate(session?.user ?? null)
+    );
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -66,6 +75,14 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {email ? (
             <>
+              {isAdmin && (
+                <a
+                  href="/admin"
+                  className="hidden text-sm font-medium text-clay transition-colors hover:text-ink sm:block"
+                >
+                  Admin
+                </a>
+              )}
               <a
                 href="/messages"
                 className="hidden text-sm font-medium text-ink/70 transition-colors hover:text-ink sm:block"
