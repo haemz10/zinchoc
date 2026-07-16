@@ -41,8 +41,15 @@ The **service_role** key is NOT in the code.
 - **Moderation:** members can **report** posts/listings/comments; **admins**
   (profiles.is_admin; currently `johnnys2`) review + delete/dismiss at `/admin`.
 - **Founding Club** section + email waitlist (`coterie_waitlist`).
+- **Installable app (PWA):** service worker (`public/sw.js`) with offline
+  fallback (`public/offline.html`) + static caching; web app manifest with
+  standalone display, app shortcuts, maskable icon, theme color; an in-app
+  "Install app" prompt (`components/pwa-install.tsx`) — a real install button on
+  Android/desktop Chrome and "Add to Home Screen" guidance on iOS Safari.
+  Members can download Coterie to their home screen and open it full-screen
+  like a native app.
 - **Polish:** custom 404, error boundary, robots.txt, sitemap.xml, OG/Twitter
-  cards, PWA manifest, no `window.confirm` (fast inline confirms), no hydration
+  cards, no `window.confirm` (fast inline confirms), no hydration
   warnings, all mock content clearly labelled "Example/Preview".
 - **Security hardening applied:** owner-only RLS on every table; storage bucket
   listing disabled; profile trigger locked from RPC; waitlist insert tightened.
@@ -62,14 +69,19 @@ Storage bucket: `coterie-media` (public, owner-scoped uploads).
    project-wide), so reset/confirm emails may not arrive.
    - Sign up at resend.com → create an API key (free: 3,000/mo).
    - Supabase → **Authentication → Emails → SMTP Settings** → Enable Custom SMTP:
-     Host `smtp.resend.com`, Port `465`, User `resend`, Password `<API key>`,
-     Sender `onboarding@resend.dev` (or your verified domain).
+     Host `smtp.resend.com`, Port `465`, User `resend`, Password `<API key>`.
+   - ⚠️ **Sender email MUST be `onboarding@resend.dev`** (or a domain you have
+     verified in Resend). A plain gmail.com/other address will be REJECTED by
+     Resend and all confirm/reset emails will fail. Fix this if it's currently
+     set to a gmail address.
 
 ### 🟡 Before a wide public launch (friends-only testing is fine now)
-2. **Turn on "Confirm email"** (after SMTP): Supabase → Authentication →
-   Providers → Email → Confirm email = ON. Prevents fake/spam accounts.
-3. **Turn on "Leaked password protection"**: Supabase → Authentication →
-   Providers → Password → enable (HaveIBeenPwned check).
+2. **"Confirm email" = ON is correct** — keep it on, but only works once the
+   SMTP above is saved and sending. Path: Supabase → Authentication →
+   Providers → Email → Confirm email.
+3. **Leaked password protection** now lives under Supabase → Authentication →
+   **Attack Protection → Bot and Abuse Protection → "Prevent use of leaked
+   passwords"** (HaveIBeenPwned check). Recommended, not launch-blocking.
 4. **Supabase is now Coterie-only (DONE).** The abandoned `v0-community-platform-ui`
    footprint was removed from this project: its `on_auth_user_created` trigger,
    `handle_new_user()` function, and unused tables (`profiles`, `posts`,
