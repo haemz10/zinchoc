@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { siteUrl } from "@/lib/site-url";
+import { PwaInstall } from "@/components/pwa-install";
 import "./globals.css";
 
 // Self-hosted via next/font: fonts are downloaded at build time and served
@@ -38,6 +39,21 @@ export const metadata: Metadata = {
       "Find your people or build a space that's entirely your own. No algorithm. Just members.",
     images: ["/img/post-p1.jpg"],
   },
+  // Makes iOS treat Coterie as an installable app ("Add to Home Screen").
+  appleWebApp: {
+    capable: true,
+    title: "Coterie",
+    statusBarStyle: "default",
+  },
+  applicationName: "Coterie",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1c1a17",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -47,7 +63,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaInstall />
+      </body>
     </html>
   );
 }

@@ -2,14 +2,18 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "Coterie — Member-owned communities",
     short_name: "Coterie",
     description:
       "A member-owned home for niche communities. No algorithm. Just members.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#faf7f2",
     theme_color: "#1c1a17",
+    categories: ["social", "lifestyle", "shopping"],
     icons: [
       {
         src: "/icon-192.png",
@@ -28,6 +32,18 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Messages",
+        short_name: "Messages",
+        url: "/messages",
+      },
+      {
+        name: "New community",
+        short_name: "Create",
+        url: "/communities/new",
       },
     ],
   };
