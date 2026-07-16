@@ -92,7 +92,8 @@ Storage bucket: `coterie-media` (public, owner-scoped uploads).
   Vercel), never to visitors. Disable via Settings → Toolbar if you like.
 - Waitlist has no auto-reply; invite founding members manually from the
   `coterie_waitlist` table (or ask to automate — needs SMTP).
-- Moderation currently = report collection only; an admin review UI can be added.
+- Moderation: admins review reports at `/admin`. To change who is admin:
+  `update coterie_profiles set is_admin = true where username = '<name>';`
 
 ---
 
