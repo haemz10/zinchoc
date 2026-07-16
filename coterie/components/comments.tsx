@@ -37,7 +37,16 @@ export function Comments({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const loadedRef = useRef(false);
+
+  async function reportComment(id: string) {
+    if (!userId) return;
+    setReportedIds((s) => new Set(s).add(id));
+    await supabaseBrowser()
+      .from("coterie_reports")
+      .insert({ reporter_id: userId, target_type: "comment", target_id: id });
+  }
 
   useEffect(() => {
     supabaseBrowser()
@@ -224,6 +233,19 @@ export function Comments({
                                 delete
                               </button>
                             </>
+                          ))}
+                        {userId &&
+                          userId !== c.user_id &&
+                          (reportedIds.has(c.id) ? (
+                            <span className="ml-2 text-ink/30">reported</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => reportComment(c.id)}
+                              className="ml-2 text-ink/40 underline-offset-2 hover:text-clay hover:underline"
+                            >
+                              report
+                            </button>
                           ))}
                       </p>
                     </>

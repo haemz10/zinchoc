@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { LivePost } from "@/lib/db";
 import { Comments } from "./comments";
+import { ReportButton } from "./report-button";
 
 function timeAgo(iso: string): string {
   const s = Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 1000));
@@ -104,7 +105,9 @@ export function LivePostCard({ post }: { post: LivePost }) {
             {post.community?.name ?? "Coterie"}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-ink/40">
+            {/* Relative time differs by a second between server render and
+                hydration; suppress the resulting hydration warning. */}
+            <span className="text-xs text-ink/40" suppressHydrationWarning>
               {timeAgo(post.created_at)}
             </span>
             {isOwner && !editing && !confirmingDelete && (
@@ -147,6 +150,11 @@ export function LivePostCard({ post }: { post: LivePost }) {
                 </button>
               </>
             )}
+            <ReportButton
+              targetType="post"
+              targetId={post.id}
+              ownerId={post.user_id}
+            />
           </div>
         </div>
 

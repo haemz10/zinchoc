@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MessageSellerButton } from "@/components/message-seller-button";
 import { ListingOwnerActions } from "@/components/listing-owner-actions";
+import { ReportButton } from "@/components/report-button";
 import { fetchListing } from "@/lib/db";
 import { formatPrice } from "@/lib/currency";
 
@@ -109,6 +110,13 @@ export default async function ListingPage({
                 Coterie never takes a cut. Arrange payment and delivery directly
                 with the maker.
               </p>
+              <div className="text-center">
+                <ReportButton
+                  targetType="listing"
+                  targetId={listing.id}
+                  ownerId={listing.user_id}
+                />
+              </div>
             </div>
           </div>
         </div>
