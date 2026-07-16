@@ -12,7 +12,9 @@ const DISMISS_KEY = "coterie-install-dismissed";
 // Registers the service worker and offers an "install as app" affordance:
 //  - Android / desktop Chrome-family: a real install button (beforeinstallprompt)
 //  - iOS Safari: a short "Add to Home Screen" instruction card
-// Hidden once installed (standalone) or if the user dismissed it.
+// Hidden once installed (standalone). "Not now" only hides it for the current
+// browsing session (sessionStorage) so it re-appears on the next visit — a
+// gentle reminder to install, until they actually do.
 export function PwaInstall() {
   const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
   const [showIos, setShowIos] = useState(false);
@@ -36,7 +38,8 @@ export function PwaInstall() {
         true;
     if (standalone) return;
 
-    if (localStorage.getItem(DISMISS_KEY) === "1") return;
+    // Dismissed for this session only — reappears next time they open the site.
+    if (sessionStorage.getItem(DISMISS_KEY) === "1") return;
     setDismissed(false);
 
     const ua = window.navigator.userAgent;
@@ -65,7 +68,9 @@ export function PwaInstall() {
     setDeferred(null);
     setShowIos(false);
     try {
-      localStorage.setItem(DISMISS_KEY, "1");
+      // Session-scoped: cleared when the browser/tab closes, so the prompt
+      // returns on their next visit instead of being gone forever.
+      sessionStorage.setItem(DISMISS_KEY, "1");
     } catch {
       /* private mode — fine, just won't persist */
     }
