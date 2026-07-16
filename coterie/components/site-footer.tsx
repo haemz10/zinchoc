@@ -11,7 +11,6 @@ const companyLinks: FooterLink[] = [
   { label: "About", href: "/" },
   { label: "Privacy", href: "/legal" },
   { label: "Terms", href: "/legal" },
-  { label: "Contact", href: "mailto:hello@coterie.club" },
 ];
 
 export function SiteFooter() {

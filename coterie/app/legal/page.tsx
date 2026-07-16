@@ -31,14 +31,8 @@ export default function LegalPage() {
             we will never sell your data.
           </p>
           <p>
-            The full documents will live on this page. Questions in the
-            meantime?{" "}
-            <a
-              href="mailto:hello@coterie.club"
-              className="font-semibold text-clay underline-offset-4 hover:underline"
-            >
-              hello@coterie.club
-            </a>
+            The full documents will live on this page ahead of a wider public
+            launch.
           </p>
         </div>
         <a
