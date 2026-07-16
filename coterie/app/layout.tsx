@@ -47,6 +47,10 @@ export const metadata: Metadata = {
   },
   applicationName: "Coterie",
   manifest: "/manifest.webmanifest",
+  icons: {
+    // Home-screen icon for iOS when installed via "Add to Home Screen".
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {
