@@ -62,6 +62,19 @@ The **service_role** key is NOT in the code.
   already recorded and honoured once a sender exists.
 - **Premium beige theme:** darker warm palette (page `#eee6d8`, ink `#241f18`,
   ivory `#faf6ed` surfaces) across app, manifest, offline page.
+- **Search** (`/search`): communities, members, posts, marketplace (also in
+  the mobile tab bar). **Follows** with counts + notifications. **Saves**
+  (bookmarks) with a `/saved` page. **Image posts** (photo attach in the
+  composer). **Marketplace SOLD** toggle + badges. **Community moderators**
+  (owner appoints under "Manage moderators"; RLS lets mods delete posts and
+  comments in that community). **Account deletion** (Settings → Danger zone,
+  password re-auth, `coterie_delete_account()` RPC).
+- **Email notifications:** `notify-email` Edge Function (Resend) drains a
+  queue pinged by a pg_net trigger; sends community-join and listing-message
+  emails per member prefs. ⚠️ Emails start flowing only after the owner sets
+  the `RESEND_API_KEY` secret: Supabase → Edge Functions → notify-email →
+  Secrets → add `RESEND_API_KEY` = (Resend API key). Optional `NOTIFY_FROM`
+  overrides the sender (default onboarding@resend.dev).
 - **Installable app (PWA):** service worker (`public/sw.js`) with offline
   fallback (`public/offline.html`) + static caching; web app manifest with
   standalone display, app shortcuts, maskable icon, theme color; an in-app
