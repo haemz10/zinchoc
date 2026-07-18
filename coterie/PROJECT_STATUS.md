@@ -46,6 +46,22 @@ The **service_role** key is NOT in the code.
   menu / Messages), one-line footer. Hero/marketing copy and the Founding
   Club section were removed for clarity (the `coterie_waitlist` table and
   `/api/waitlist` endpoint still exist if the club returns).
+- **Profiles:** public pages at `/u/[username]` (avatar, bio, joined date,
+  their posts/communities/listings); avatars shown on post cards and in the
+  header.
+- **Settings (`/settings`):** avatar upload, display name/username/bio edit;
+  **password change requires re-entering the current password** (re-auth
+  before update); notification preferences; list of own content.
+- **Notifications:** bell in the header (unread badge, realtime + polling,
+  mark-read on open). DB triggers notify on: comments on your posts, posts in
+  your communities, joins to your communities, new chat messages. Per-event
+  toggles + optional device banner alerts (browser Notification permission)
+  + email preference flags (`email_joins`, `email_listing_messages`) stored in
+  `coterie_notification_prefs`. NOTE: actual email *sending* is not wired yet —
+  it needs a Resend API key as a Supabase Edge Function secret; prefs are
+  already recorded and honoured once a sender exists.
+- **Premium beige theme:** darker warm palette (page `#eee6d8`, ink `#241f18`,
+  ivory `#faf6ed` surfaces) across app, manifest, offline page.
 - **Installable app (PWA):** service worker (`public/sw.js`) with offline
   fallback (`public/offline.html`) + static caching; web app manifest with
   standalone display, app shortcuts, maskable icon, theme color; an in-app
@@ -86,7 +102,8 @@ Storage bucket: `coterie-media` (public, owner-scoped uploads).
    Providers → Email → Confirm email.
 3. **Leaked password protection** now lives under Supabase → Authentication →
    **Attack Protection → Bot and Abuse Protection → "Prevent use of leaked
-   passwords"** (HaveIBeenPwned check). Recommended, not launch-blocking.
+   passwords"** (HaveIBeenPwned check). Requires the Pro plan — recommended
+   but NOT launch-blocking; skip until Pro is needed for other reasons.
 4. **Supabase is now Coterie-only (DONE).** The abandoned `v0-community-platform-ui`
    footprint was removed from this project: its `on_auth_user_created` trigger,
    `handle_new_user()` function, and unused tables (`profiles`, `posts`,
