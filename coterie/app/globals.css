@@ -36,4 +36,11 @@
     break-inside: avoid;
     margin-bottom: 1rem;
   }
+  /* Hide scrollbars on horizontal story rows */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

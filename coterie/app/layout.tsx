@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { siteUrl } from "@/lib/site-url";
 import { PwaInstall } from "@/components/pwa-install";
+import { BottomNav } from "@/components/bottom-nav";
 import "./globals.css";
 
 // Self-hosted via next/font: fonts are downloaded at build time and served
@@ -67,8 +68,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>
+      {/* pb keeps content clear of the mobile bottom tab bar */}
+      <body className="pb-14 md:pb-0">
         {children}
+        <BottomNav />
         <PwaInstall />
       </body>
     </html>

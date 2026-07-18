@@ -87,8 +87,9 @@ export function PwaInstall() {
   if (!deferred && !showIos) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:left-auto sm:right-4 sm:px-0">
-      <div className="mx-auto max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-lg sm:mx-0">
+    // bottom-14 clears the mobile tab bar; md+ has no tab bar.
+    <div className="fixed inset-x-0 bottom-14 z-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:bottom-4 md:left-auto md:right-4 md:px-0">
+      <div className="mx-auto max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-lg md:mx-0">
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-ink font-serif text-xl leading-none text-cream">
             c
