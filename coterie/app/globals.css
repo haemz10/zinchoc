@@ -7,9 +7,22 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* our PullToRefresh component handles refresh; stop native rubber-banding
+       from fighting it */
+    overscroll-behavior-y: contain;
   }
   body {
     @apply bg-cream text-ink antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* iOS zooms the page when focusing a control smaller than 16px — and the
+     page can stay stuck zoomed. Keep every control at 16px on phones. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 }
 

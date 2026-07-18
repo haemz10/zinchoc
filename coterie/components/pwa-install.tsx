@@ -7,14 +7,16 @@ type InstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "coterie-install-dismissed";
+const DISMISS_KEY = "coterie-install-snooze";
+// "Not now" hides the banner briefly; it returns on their next visit so the
+// install chance is never lost for good.
+const SNOOZE_MS = 30 * 60 * 1000;
 
 // Registers the service worker and offers an "install as app" affordance:
 //  - Android / desktop Chrome-family: a real install button (beforeinstallprompt)
 //  - iOS Safari: a short "Add to Home Screen" instruction card
-// Hidden once installed (standalone). "Not now" only hides it for the current
-// browsing session (sessionStorage) so it re-appears on the next visit — a
-// gentle reminder to install, until they actually do.
+// Hidden once installed (standalone). "Not now" snoozes it for 30 minutes
+// (localStorage timestamp) so it always re-appears on the next visit.
 export function PwaInstall() {
   const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
   const [showIos, setShowIos] = useState(false);
@@ -38,8 +40,9 @@ export function PwaInstall() {
         true;
     if (standalone) return;
 
-    // Dismissed for this session only — reappears next time they open the site.
-    if (sessionStorage.getItem(DISMISS_KEY) === "1") return;
+    // Snoozed recently? Stay quiet for now; reappear on the next visit.
+    const snoozedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);
+    if (Date.now() - snoozedAt < SNOOZE_MS) return;
     setDismissed(false);
 
     const ua = window.navigator.userAgent;
@@ -68,9 +71,7 @@ export function PwaInstall() {
     setDeferred(null);
     setShowIos(false);
     try {
-      // Session-scoped: cleared when the browser/tab closes, so the prompt
-      // returns on their next visit instead of being gone forever.
-      sessionStorage.setItem(DISMISS_KEY, "1");
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
       /* private mode — fine, just won't persist */
     }

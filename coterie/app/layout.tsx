@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 import { siteUrl } from "@/lib/site-url";
 import { PwaInstall } from "@/components/pwa-install";
 import { BottomNav } from "@/components/bottom-nav";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import "./globals.css";
 
 // Self-hosted via next/font: fonts are downloaded at build time and served
@@ -58,6 +59,10 @@ export const viewport: Viewport = {
   themeColor: "#241f18",
   width: "device-width",
   initialScale: 1,
+  // App-like: lock pinch zoom so the layout can't get stuck zoomed out/in,
+  // and iOS doesn't auto-zoom into inputs.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -70,6 +75,7 @@ export default function RootLayout({
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       {/* pb keeps content clear of the mobile bottom tab bar */}
       <body className="pb-14 md:pb-0">
+        <PullToRefresh />
         {children}
         <BottomNav />
         <PwaInstall />

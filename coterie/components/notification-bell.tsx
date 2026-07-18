@@ -173,7 +173,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div className="absolute right-0 top-12 z-50 w-[19rem] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl">
+          <div className="fixed inset-x-3 top-[4.2rem] z-50 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-[19rem]">
             <p className="border-b border-black/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-ink/40">
               Notifications
             </p>
