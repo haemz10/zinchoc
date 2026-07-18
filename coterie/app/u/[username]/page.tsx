@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LivePostCard } from "@/components/live-post-card";
+import { FollowButton } from "@/components/follow-button";
 import { formatPrice } from "@/lib/currency";
 import {
+  fetchFollowCounts,
   fetchProfileByUsername,
   fetchUserCommunities,
   fetchUserListings,
@@ -45,10 +47,11 @@ export default async function ProfilePage({ params }: Props) {
     );
   }
 
-  const [posts, communities, listings] = await Promise.all([
+  const [posts, communities, listings, follows] = await Promise.all([
     fetchUserPosts(profile.id),
     fetchUserCommunities(profile.id),
     fetchUserListings(profile.id),
+    fetchFollowCounts(profile.id),
   ]);
 
   const joined = new Date(profile.created_at).toLocaleDateString("en-AU", {
@@ -88,12 +91,17 @@ export default async function ProfilePage({ params }: Props) {
             )}
             <p className="mt-1 text-xs text-ink/40">Joined {joined}</p>
           </div>
+          <div className="ml-auto shrink-0">
+            <FollowButton profileId={profile.id} />
+          </div>
         </div>
 
         {/* Stats */}
         <div className="mt-6 flex gap-6 border-y border-black/5 py-3 text-sm">
           {[
             [posts.length, "posts"],
+            [follows.followers, "followers"],
+            [follows.following, "following"],
             [communities.length, "communities"],
             [listings.length, "for sale"],
           ].map(([n, label]) => (
@@ -145,6 +153,11 @@ export default async function ProfilePage({ params }: Props) {
                       <div className="grid h-full w-full place-items-center text-3xl text-ink/20">
                         🛍️
                       </div>
+                    )}
+                    {l.sold && (
+                      <span className="absolute left-2 top-2 rounded-full bg-ink/85 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-cream">
+                        Sold
+                      </span>
                     )}
                   </div>
                   <div className="mt-2 flex items-baseline justify-between gap-2">

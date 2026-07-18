@@ -8,6 +8,7 @@ export type LivePost = {
   id: string;
   user_id: string;
   caption: string;
+  image: string | null;
   created_at: string;
   community: { id: string; name: string } | null;
   author: {
@@ -20,7 +21,7 @@ export type LivePost = {
 };
 
 const POST_SELECT =
-  `id,user_id,caption,created_at,` +
+  `id,user_id,caption,image,created_at,` +
   `community:coterie_communities(id,name),` +
   `author:coterie_profiles!coterie_posts_user_id_fkey(username,display_name,avatar_url),` +
   `likes:coterie_likes(count),` +
@@ -103,13 +104,14 @@ export type Listing = {
   buy_url: string | null;
   description: string | null;
   image: string | null;
+  sold: boolean;
   created_at: string;
   community: { id: string; name: string } | null;
   maker: { username: string; display_name: string } | null;
 };
 
 const LISTING_SELECT =
-  `id,user_id,title,price,currency,buy_url,description,image,created_at,` +
+  `id,user_id,title,price,currency,buy_url,description,image,sold,created_at,` +
   `community:coterie_communities(id,name),` +
   `maker:coterie_profiles!coterie_listings_user_id_fkey(username,display_name)`;
 
@@ -228,6 +230,31 @@ export async function fetchUserListings(userId: string): Promise<Listing[]> {
     return (await res.json()) as Listing[];
   } catch {
     return [];
+  }
+}
+
+
+export async function fetchFollowCounts(
+  userId: string
+): Promise<{ followers: number; following: number }> {
+  try {
+    const enc = encodeURIComponent(userId);
+    const opts = { headers, cache: "no-store" as const };
+    const [fRes, gRes] = await Promise.all([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/coterie_follows?select=follower_id&followee_id=eq.${enc}`,
+        opts
+      ),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/coterie_follows?select=followee_id&follower_id=eq.${enc}`,
+        opts
+      ),
+    ]);
+    const followers = fRes.ok ? ((await fRes.json()) as unknown[]).length : 0;
+    const following = gRes.ok ? ((await gRes.json()) as unknown[]).length : 0;
+    return { followers, following };
+  } catch {
+    return { followers: 0, following: 0 };
   }
 }
 

@@ -6,6 +6,7 @@ import { PostComposer } from "@/components/post-composer";
 import { LivePostCard } from "@/components/live-post-card";
 import { JoinButton } from "@/components/join-button";
 import { CommunityOwnerActions } from "@/components/community-owner-actions";
+import { ModManager } from "@/components/mod-manager";
 import {
   fetchCommunity,
   fetchCommunityListings,
@@ -85,6 +86,10 @@ export default async function CommunityPage({
                   ownerId={community.created_by}
                   name={community.name}
                   blurb={community.blurb}
+                />
+                <ModManager
+                  communityId={community.id}
+                  ownerId={community.created_by}
                 />
               </div>
               <div className="w-full sm:w-48">
@@ -171,6 +176,11 @@ export default async function CommunityPage({
                         <div className="grid h-full w-full place-items-center text-3xl text-ink/20">
                           🛍️
                         </div>
+                      )}
+                      {l.sold && (
+                        <span className="absolute left-2 top-2 rounded-full bg-ink/85 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-cream">
+                          Sold
+                        </span>
                       )}
                     </div>
                     <div className="mt-2">

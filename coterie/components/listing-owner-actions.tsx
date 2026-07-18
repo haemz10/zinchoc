@@ -7,14 +7,17 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 export function ListingOwnerActions({
   listingId,
   ownerId,
+  sold = false,
 }: {
   listingId: string;
   ownerId: string;
+  sold?: boolean;
 }) {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [isSold, setIsSold] = useState(sold);
 
   useEffect(() => {
     supabaseBrowser()
@@ -62,8 +65,26 @@ export function ListingOwnerActions({
     );
   }
 
+  async function toggleSold() {
+    if (busy) return;
+    const next = !isSold;
+    setIsSold(next);
+    await supabaseBrowser()
+      .from("coterie_listings")
+      .update({ sold: next })
+      .eq("id", listingId);
+    router.refresh();
+  }
+
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={toggleSold}
+        className="w-full rounded-full border border-moss/40 px-4 py-2.5 text-center text-sm font-semibold text-moss transition-colors hover:bg-moss/10"
+      >
+        {isSold ? "Mark as available again" : "Mark as sold"}
+      </button>
       <a
         href={`/marketplace/${listingId}/edit`}
         className="flex-1 rounded-full border border-ink/15 bg-white px-4 py-2.5 text-center text-sm font-semibold text-ink transition-colors hover:border-ink/40"

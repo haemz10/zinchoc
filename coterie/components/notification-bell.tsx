@@ -5,7 +5,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type Notice = {
   id: string;
-  type: "comment" | "community_post" | "join" | "message";
+  type: "comment" | "community_post" | "join" | "message" | "follow";
   target_type: string;
   target_id: string;
   preview: string | null;
@@ -25,6 +25,8 @@ function describe(n: Notice): string {
       return `${who} joined ${n.preview || "your community"}`;
     case "message":
       return `${who} sent you a message`;
+    case "follow":
+      return `${who} started following you`;
   }
 }
 
@@ -36,6 +38,9 @@ function linkFor(n: Notice): string {
       return `/messages?thread=${n.target_id}`;
     case "listing":
       return `/marketplace/${n.target_id}`;
+    case "profile":
+      // target_id carries the follower's username
+      return `/u/${n.target_id}`;
     default:
       return "/#feed";
   }
@@ -187,7 +192,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                     }`}
                   >
                     {describe(n)}
-                    {n.type !== "join" && n.preview && (
+                    {n.type !== "join" && n.type !== "follow" && n.preview && (
                       <span className="mt-0.5 block truncate text-xs font-normal text-ink/45">
                         “{n.preview}”
                       </span>

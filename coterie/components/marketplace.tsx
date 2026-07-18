@@ -38,6 +38,11 @@ export function Marketplace({ listings = [] }: { listings?: Listing[] }) {
                       🛍️
                     </div>
                   )}
+                  {l.sold && (
+                    <span className="absolute left-2 top-2 rounded-full bg-ink/85 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-cream">
+                      Sold
+                    </span>
+                  )}
                 </div>
                 <div className="mt-3">
                   <div className="flex items-baseline justify-between gap-2">

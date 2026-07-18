@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 
 type Prefs = {
   inapp_comments: boolean;
+  inapp_follows: boolean;
   inapp_community_posts: boolean;
   inapp_joins: boolean;
   inapp_messages: boolean;
@@ -18,6 +19,7 @@ type Prefs = {
 
 const DEFAULT_PREFS: Prefs = {
   inapp_comments: true,
+  inapp_follows: true,
   inapp_community_posts: true,
   inapp_joins: true,
   inapp_messages: true,
@@ -57,6 +59,12 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [prefsMsg, setPrefsMsg] = useState<string | null>(null);
   const [savingPrefs, setSavingPrefs] = useState(false);
+
+  // Danger zone
+  const [delPw, setDelPw] = useState("");
+  const [delErr, setDelErr] = useState<string | null>(null);
+  const [delConfirming, setDelConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // My content
   const [myCommunities, setMyCommunities] = useState<
@@ -231,6 +239,35 @@ export default function SettingsPage() {
       }
     }
     await savePrefs({ ...prefs, banner_enabled: on });
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDelErr(null);
+    if (!delPw) {
+      setDelErr("Enter your password to confirm it's you.");
+      return;
+    }
+    setDeleting(true);
+    const supabase = supabaseBrowser();
+    // Security check: re-authenticate before the irreversible action.
+    const { error: reauthErr } = await supabase.auth.signInWithPassword({
+      email,
+      password: delPw,
+    });
+    if (reauthErr) {
+      setDelErr("Password is incorrect.");
+      setDeleting(false);
+      return;
+    }
+    const { error } = await supabase.rpc("coterie_delete_account");
+    if (error) {
+      setDelErr("Could not delete the account — please try again.");
+      setDeleting(false);
+      return;
+    }
+    await supabase.auth.signOut();
+    window.location.href = "/";
   }
 
   return (
@@ -436,6 +473,11 @@ export default function SettingsPage() {
                 onChange={(v) => savePrefs({ ...prefs, inapp_joins: v })}
               />
               <Toggle
+                label="New followers"
+                checked={prefs.inapp_follows}
+                onChange={(v) => savePrefs({ ...prefs, inapp_follows: v })}
+              />
+              <Toggle
                 label="New messages about listings"
                 checked={prefs.inapp_messages}
                 onChange={(v) => savePrefs({ ...prefs, inapp_messages: v })}
@@ -527,7 +569,64 @@ export default function SettingsPage() {
               )}
               <p className="mt-3 text-xs text-ink/45">
                 Your posts can be edited or deleted right on the post itself.
+                Bookmarked things live in{" "}
+                <a href="/saved" className="font-semibold text-clay hover:underline">
+                  Saved
+                </a>
+                .
               </p>
+            </Section>
+
+            {/* ---------- Danger zone ---------- */}
+            <Section title="Danger zone">
+              <p className="text-sm text-ink/60">
+                Deleting your account permanently removes your profile, posts,
+                comments, communities, listings, and messages. This cannot be
+                undone.
+              </p>
+              {!delConfirming ? (
+                <button
+                  type="button"
+                  onClick={() => setDelConfirming(true)}
+                  className="mt-3 rounded-full border border-clay/40 px-5 py-2.5 text-sm font-semibold text-clay hover:bg-clay/10"
+                >
+                  Delete my account…
+                </button>
+              ) : (
+                <div className="mt-3">
+                  <Field label="Confirm with your password">
+                    <input
+                      type="password"
+                      value={delPw}
+                      onChange={(e) => setDelPw(e.target.value)}
+                      autoComplete="current-password"
+                      className="input"
+                    />
+                  </Field>
+                  {delErr && <Note kind="err">{delErr}</Note>}
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDelConfirming(false);
+                        setDelPw("");
+                        setDelErr(null);
+                      }}
+                      className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold text-ink hover:border-ink/40"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deleteAccount}
+                      disabled={deleting}
+                      className="rounded-full bg-clay px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {deleting ? "Deleting…" : "Permanently delete"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </Section>
           </>
         )}

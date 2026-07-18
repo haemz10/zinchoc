@@ -8,6 +8,7 @@ import { NotificationBell } from "./notification-bell";
 
 const nav = [
   { label: "Explore", href: "/#feed" },
+  { label: "Search", href: "/search" },
   { label: "Marketplace", href: "/#marketplace" },
   { label: "Communities", href: "/#communities" },
 ];
@@ -235,6 +236,13 @@ export function SiteHeader() {
                   className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
                 >
                   Messages
+                </a>
+                <a
+                  href="/saved"
+                  onClick={() => setOpen(false)}
+                  className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
+                >
+                  Saved
                 </a>
                 <a
                   href="/settings"

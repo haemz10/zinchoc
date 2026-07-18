@@ -45,11 +45,17 @@ export function BottomNav() {
         aria-label="App"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-cream/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       >
-        <div className="grid h-14 grid-cols-4 items-center">
+        <div className="grid h-14 grid-cols-5 items-center">
           <a href="/" className="grid place-items-center text-ink" aria-label="Home">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M3 10.5 12 3l9 7.5" />
               <path d="M5 9.5V21h14V9.5" />
+            </svg>
+          </a>
+          <a href="/search" className="grid place-items-center text-ink" aria-label="Search">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.8-3.8" />
             </svg>
           </a>
           <a href="/#marketplace" className="grid place-items-center text-ink" aria-label="Marketplace">

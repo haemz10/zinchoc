@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { MessageSellerButton } from "@/components/message-seller-button";
 import { ListingOwnerActions } from "@/components/listing-owner-actions";
 import { ReportButton } from "@/components/report-button";
+import { SaveButton } from "@/components/save-button";
 import { fetchListing } from "@/lib/db";
 import { formatPrice } from "@/lib/currency";
 
@@ -71,8 +72,13 @@ export default async function ListingPage({
                 {listing.community.name}
               </a>
             )}
-            <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h1 className="mt-1 flex items-center gap-3 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
               {listing.title}
+              {listing.sold && (
+                <span className="rounded-full bg-ink/85 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cream">
+                  Sold
+                </span>
+              )}
             </h1>
             <p className="mt-2 text-2xl font-semibold text-clay">
               {formatPrice(listing.price, listing.currency)}
@@ -94,7 +100,7 @@ export default async function ListingPage({
             )}
 
             <div className="mt-8 space-y-3">
-              {listing.buy_url && (
+              {!listing.sold && listing.buy_url && (
                 <a
                   href={listing.buy_url}
                   target="_blank"
@@ -111,7 +117,11 @@ export default async function ListingPage({
               <ListingOwnerActions
                 listingId={listing.id}
                 ownerId={listing.user_id}
+                sold={listing.sold}
               />
+              <div className="flex justify-center">
+                <SaveButton targetType="listing" targetId={listing.id} />
+              </div>
               <p className="text-center text-xs text-ink/45">
                 Coterie never takes a cut. Arrange payment and delivery directly
                 with the maker.

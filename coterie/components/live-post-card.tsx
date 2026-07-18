@@ -6,6 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { LivePost } from "@/lib/db";
 import { Comments } from "./comments";
 import { ReportButton } from "./report-button";
+import { SaveButton } from "./save-button";
 
 function timeAgo(iso: string): string {
   const s = Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 1000));
@@ -28,6 +29,7 @@ export function LivePostCard({ post }: { post: LivePost }) {
   const [removed, setRemoved] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [canModerate, setCanModerate] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -42,9 +44,25 @@ export function LivePostCard({ post }: { post: LivePost }) {
           .eq("user_id", uid)
           .maybeSingle();
         setLiked(Boolean(mine));
+        const [{ data: me }, { data: mod }] = await Promise.all([
+          supabase
+            .from("coterie_profiles")
+            .select("is_admin")
+            .eq("id", uid)
+            .maybeSingle(),
+          post.community
+            ? supabase
+                .from("coterie_community_mods")
+                .select("user_id")
+                .eq("community_id", post.community.id)
+                .eq("user_id", uid)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+        setCanModerate(Boolean(me?.is_admin) || Boolean(mod));
       }
     });
-  }, [post.id]);
+  }, [post.id, post.community]);
 
   const isOwner = userId === post.user_id;
 
@@ -99,6 +117,15 @@ export function LivePostCard({ post }: { post: LivePost }) {
 
   return (
     <article className="overflow-hidden rounded-2xl border border-clay/25 bg-white shadow-sm">
+      {post.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.image}
+          alt=""
+          className="w-full object-cover"
+          loading="lazy"
+        />
+      )}
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="rounded-full bg-clay/10 px-2.5 py-1 text-xs font-semibold text-clay">
@@ -111,27 +138,27 @@ export function LivePostCard({ post }: { post: LivePost }) {
               {timeAgo(post.created_at)}
             </span>
             {isOwner && !editing && !confirmingDelete && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDraft(caption);
-                    setEditing(true);
-                  }}
-                  className="text-xs font-medium text-ink/45 hover:text-ink"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmingDelete(true)}
-                  className="text-xs font-medium text-ink/45 hover:text-clay"
-                >
-                  Delete
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(caption);
+                  setEditing(true);
+                }}
+                className="text-xs font-medium text-ink/45 hover:text-ink"
+              >
+                Edit
+              </button>
             )}
-            {isOwner && confirmingDelete && (
+            {(isOwner || canModerate) && !editing && !confirmingDelete && (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="text-xs font-medium text-ink/45 hover:text-clay"
+              >
+                Delete
+              </button>
+            )}
+            {(isOwner || canModerate) && confirmingDelete && (
               <>
                 <button
                   type="button"
@@ -230,6 +257,10 @@ export function LivePostCard({ post }: { post: LivePost }) {
           >
             <span aria-hidden>{liked ? "♥" : "♡"}</span> {count}
           </button>
+        </div>
+
+        <div className="mt-2 flex justify-end">
+          <SaveButton targetType="post" targetId={post.id} />
         </div>
 
         <Comments postId={post.id} initialCount={post.comments?.[0]?.count ?? 0} />

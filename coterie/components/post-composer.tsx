@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { uploadImage } from "@/lib/upload";
 
 type CommunityOption = { id: string; name: string };
 
@@ -22,6 +23,9 @@ export function PostComposer({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
@@ -43,10 +47,21 @@ export function PostComposer({
     if (!text) return;
     setBusy(true);
     setError(null);
-    const { error } = await supabaseBrowser().from("coterie_posts").insert({
+    const supabase = supabaseBrowser();
+    let image: string | null = null;
+    if (file) {
+      image = await uploadImage(supabase, userId, file);
+      if (!image) {
+        setError("Could not upload the photo — try a smaller image.");
+        setBusy(false);
+        return;
+      }
+    }
+    const { error } = await supabase.from("coterie_posts").insert({
       user_id: userId,
       community_id: target,
       caption: text.slice(0, 500),
+      image,
     });
     setBusy(false);
     if (error) {
@@ -54,6 +69,8 @@ export function PostComposer({
       return;
     }
     setCaption("");
+    setFile(null);
+    setPreview(null);
     router.refresh();
   }
 
@@ -93,6 +110,27 @@ export function PostComposer({
         maxLength={500}
         className="w-full resize-none rounded-xl border border-ink/10 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
       />
+      {preview && (
+        <div className="relative mt-3 inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt="Attached"
+            className="max-h-48 rounded-xl object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setFile(null);
+              setPreview(null);
+            }}
+            aria-label="Remove photo"
+            className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-xs font-bold text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         {!fixedCommunityId && communities.length > 0 && (
           <div className="flex items-center gap-2">
@@ -118,6 +156,28 @@ export function PostComposer({
         )}
         {fixedCommunityId && <span />}
         <div className="flex items-center gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f && f.type.startsWith("image/")) {
+                setFile(f);
+                setPreview(URL.createObjectURL(f));
+              }
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Attach a photo"
+            className="grid h-9 w-9 place-items-center rounded-full border border-ink/15 bg-white text-base hover:border-ink/40"
+          >
+            📷
+          </button>
           {error && (
             <p role="alert" className="text-sm font-medium text-clay">
               {error}
