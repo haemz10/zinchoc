@@ -190,14 +190,34 @@ export function LivePostCard({ post }: { post: LivePost }) {
         )}
 
         <div className="mt-3 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight">
-              {post.author?.display_name ?? "A member"}
-            </p>
-            <p className="truncate text-xs text-ink/50">
-              @{post.author?.username ?? "member"}
-            </p>
-          </div>
+          <a
+            href={post.author ? `/u/${post.author.username}` : "#"}
+            className="flex min-w-0 items-center gap-2"
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-clay/25 via-cream to-moss/25">
+              {post.author?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={post.author.avatar_url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="font-serif text-xs font-semibold text-ink/60">
+                  {(post.author?.display_name ?? "M").charAt(0).toUpperCase()}
+                </span>
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold leading-tight">
+                {post.author?.display_name ?? "A member"}
+              </span>
+              <span className="block truncate text-xs text-ink/50">
+                @{post.author?.username ?? "member"}
+              </span>
+            </span>
+          </a>
           <button
             type="button"
             onClick={toggleLike}

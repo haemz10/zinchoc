@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ensureProfile } from "@/lib/ensure-profile";
+import { NotificationBell } from "./notification-bell";
 
 const nav = [
   { label: "Explore", href: "/#feed" },
@@ -15,26 +16,32 @@ export function SiteHeader() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
     const hydrate = async (user: { id: string; email?: string; user_metadata?: unknown } | null) => {
       setEmail(user?.email ?? null);
+      setUserId(user?.id ?? null);
       const meta = user?.user_metadata as { username?: string } | undefined;
       setUsername(meta?.username ?? null);
       if (!user) {
         setIsAdmin(false);
+        setAvatarUrl(null);
         return;
       }
       void ensureProfile(supabase, user as never);
       const { data: me } = await supabase
         .from("coterie_profiles")
-        .select("is_admin")
+        .select("is_admin,username,avatar_url")
         .eq("id", user.id)
         .maybeSingle();
       setIsAdmin(Boolean(me?.is_admin));
+      if (me?.username) setUsername(me.username);
+      setAvatarUrl(me?.avatar_url ?? null);
     };
     supabase.auth.getUser().then(({ data }) => hydrate(data.user));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
@@ -48,9 +55,11 @@ export function SiteHeader() {
     router.refresh();
   }
 
+  const profileHref = username ? `/u/${username}` : "/settings";
+
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-cream/85 backdrop-blur-md">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
+      <div className="container-page flex h-16 items-center justify-between gap-3">
         <a href="/" className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-ink text-cream font-serif text-lg leading-none">
             c
@@ -73,39 +82,72 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {email ? (
+          {email && userId ? (
             <>
               {isAdmin && (
                 <a
                   href="/admin"
-                  className="hidden text-sm font-medium text-clay transition-colors hover:text-ink sm:block"
+                  className="hidden text-sm font-medium text-clay transition-colors hover:text-ink lg:block"
                 >
                   Admin
                 </a>
               )}
               <a
                 href="/messages"
-                className="hidden text-sm font-medium text-ink/70 transition-colors hover:text-ink sm:block"
+                className="hidden text-sm font-medium text-ink/70 transition-colors hover:text-ink lg:block"
               >
                 Messages
               </a>
               <a
                 href="/communities/new"
-                className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5"
+                className="hidden rounded-full bg-ink px-4 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5 sm:block"
               >
-                <span className="sm:hidden">＋</span>
-                <span className="hidden sm:inline">Create community</span>
+                Create community
               </a>
-              <span className="hidden max-w-[14ch] truncate text-sm font-semibold text-ink/70 sm:block">
-                @{username ?? email.split("@")[0]}
-              </span>
-              <button
-                type="button"
-                onClick={signOut}
-                className="rounded-full border border-ink/15 bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink/40"
+
+              <NotificationBell userId={userId} />
+
+              {/* Avatar → own profile */}
+              <a
+                href={profileHref}
+                aria-label="My profile"
+                className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-ink/15 bg-white transition-colors hover:border-ink/40"
               >
-                Sign out
-              </button>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="font-serif text-sm font-semibold text-ink/60">
+                    {(username ?? email).charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </a>
+
+              {/* Settings gear */}
+              <a
+                href="/settings"
+                aria-label="Settings"
+                className="hidden h-10 w-10 place-items-center rounded-full border border-ink/15 bg-white text-ink transition-colors hover:border-ink/40 sm:grid"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z" />
+                </svg>
+              </a>
             </>
           ) : (
             <>
@@ -181,12 +223,35 @@ export function SiteHeader() {
             {email ? (
               <>
                 <a
+                  href={profileHref}
+                  onClick={() => setOpen(false)}
+                  className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
+                >
+                  My profile
+                </a>
+                <a
                   href="/messages"
                   onClick={() => setOpen(false)}
                   className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
                 >
                   Messages
                 </a>
+                <a
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  className="border-b border-black/5 py-3 text-sm font-medium text-ink/80 hover:text-ink"
+                >
+                  Settings
+                </a>
+                {isAdmin && (
+                  <a
+                    href="/admin"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-black/5 py-3 text-sm font-medium text-clay hover:text-ink"
+                  >
+                    Admin
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => {

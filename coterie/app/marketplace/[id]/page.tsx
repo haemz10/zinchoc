@@ -78,7 +78,13 @@ export default async function ListingPage({
               {formatPrice(listing.price, listing.currency)}
             </p>
             <p className="mt-2 text-sm text-ink/55">
-              Sold by @{listing.maker?.username ?? "member"}
+              Sold by{" "}
+              <a
+                href={listing.maker ? `/u/${listing.maker.username}` : "#"}
+                className="font-semibold text-clay hover:underline"
+              >
+                @{listing.maker?.username ?? "member"}
+              </a>
             </p>
 
             {listing.description && (

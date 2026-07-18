@@ -43,4 +43,8 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* Shared form input (settings, composers) */
+  .input {
+    @apply w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm outline-none focus:border-ink/40;
+  }
 }

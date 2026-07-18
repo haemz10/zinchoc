@@ -9,10 +9,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cream: "#faf7f2",
-        ink: "#1c1a17",
-        clay: "#b7603f",
-        moss: "#5c6b53",
+        // Premium warm palette: deeper beige page, ivory surfaces, espresso ink.
+        cream: "#eee6d8",
+        ink: "#241f18",
+        clay: "#9d5a36",
+        moss: "#54614a",
+        // Cards use bg-white throughout — remapped to warm ivory so nothing
+        // on the page is a stark pure white.
+        white: "#faf6ed",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
