@@ -10,7 +10,8 @@ import { NextResponse } from "next/server";
 // include both the upload key and Google Play's app-signing key.
 const PACKAGE_NAME = "club.coterie.twa";
 const SHA256_FINGERPRINTS: string[] = [
-  // e.g. "AB:CD:EF:...:12" — fill in from PWABuilder / Play Console.
+  // PWABuilder signing key (from the generated package's assetlinks.json)
+  "BA:1E:EF:9B:A8:05:B4:7B:CE:0D:74:9A:06:17:54:95:DB:D4:03:93:7F:98:76:C7:43:53:4A:65:8B:34:48:2B",
 ];
 
 export function GET() {
