@@ -66,6 +66,34 @@ try {
 } catch (e) {}
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
+/* ---------------- 다국어 ---------------- */
+function detectLang() {
+  const n = (navigator.language || 'en').toLowerCase();
+  for (const [code] of LANG_LIST) if (n.startsWith(code)) return code;
+  return 'en';
+}
+let L = LANGS[save.lang] || LANGS[detectLang()] || LANGS.en;
+function setLang(code) {
+  save.lang = code;
+  L = LANGS[code];
+  document.title = L.title;
+  document.documentElement.lang = code;
+  persist();
+}
+function T(key, ...a) {
+  const s = (L[key] !== undefined ? L[key] : LANGS.en[key]);
+  if (typeof s !== 'string') return key;
+  return s.replace(/\{(\d)\}/g, (m, i) => a[+i]);
+}
+if (save.lang) { document.title = L.title; document.documentElement.lang = save.lang; }
+
+// 길면 자동 축소되는 텍스트 폰트 설정
+function fitFont(txt, maxW, size, weight) {
+  ctx.font = `${weight || 'bold'} ${size}px sans-serif`;
+  const w = ctx.measureText(txt).width;
+  if (w > maxW) ctx.font = `${weight || 'bold'} ${Math.max(10, Math.floor(size * maxW / w))}px sans-serif`;
+}
+
 /* ---------------- Sound (WebAudio 합성) ---------------- */
 const Sound = {
   ac: null, musicTimer: null, nextNoteTime: 0, step: 0,
@@ -151,17 +179,13 @@ const Sound = {
 
 /* ---------------- 상점 정의 ---------------- */
 const SHOP = [
-  { key: 'shoe',   icon: '👟', name: '프로 러닝화',   desc: '시작 속도가 빨라져 점수가 쑥쑥!',    max: 5, costs: [100, 250, 500, 1000, 2000] },
-  { key: 'magnet', icon: '🧲', name: '강력 자석',     desc: '자석 아이템 지속시간 +2초',          max: 5, costs: [80, 200, 450, 900, 1800] },
-  { key: 'shield', icon: '🛡️', name: '튼튼 방패',     desc: '방패 아이템 지속시간 +2초',          max: 5, costs: [80, 200, 450, 900, 1800] },
-  { key: 'heart',  icon: '❤️', name: '아침밥 챙기기', desc: '최대 체력 +1',                        max: 2, costs: [400, 1500] },
+  { key: 'shoe',   icon: '👟', max: 5, costs: [100, 250, 500, 1000, 2000] },
+  { key: 'magnet', icon: '🧲', max: 5, costs: [80, 200, 450, 900, 1800] },
+  { key: 'shield', icon: '🛡️', max: 5, costs: [80, 200, 450, 900, 1800] },
+  { key: 'heart',  icon: '❤️', max: 2, costs: [400, 1500] },
 ];
 
-const ITEMS = [
-  { icon: '📱', name: '휴대폰' },
-  { icon: '👛', name: '지갑' },
-  { icon: '👜', name: '가방' },
-];
+const ITEM_ICONS = ['📱', '👛', '👜'];
 
 const THEMES = [
   { name: '지하철 승강장', sky1: '#0b0d24', sky2: '#1b1f4b', far: '#141637', mid: '#232655', accent: '#4a55c9', neon: ['#ff6fa5', '#5ad1ff', '#ffd166'] },
@@ -228,7 +252,7 @@ function doJump() {
     P.vy = -800; P.jumps--;
     Sound.sfx('jump2');
     burst(PX(), P.y, 10, '#8fe3ff', 3);
-    addFloat(PX(), P.y - 90, '휘리릭!', '#8fe3ff', 0.8);
+    addFloat(PX(), P.y - 90, T('whoosh'), '#8fe3ff', 0.8);
   }
 }
 function doPunch() {
@@ -346,13 +370,12 @@ function spawnThief() {
     jumpT: rand(0.6, 1.2), escaping: false, gone: false,
   };
   run.hurtInChase = 0;
-  const item = ITEMS[run.items % 3];
-  addFloat(W * 0.6, GY() - 220, `${item.icon} ${item.name}을(를) 든 도둑 발견!`, '#ffd166', 1.15);
+  const idx = run.items % 3;
+  addFloat(W * 0.6, GY() - 220, T('thiefFound', ITEM_ICONS[idx], L.items[idx]), '#ffd166', 1.15);
 }
 
 function catchThief() {
   const idx = run.items % 3;
-  const item = ITEMS[idx];
   run.items++; run.catches++;
   run.combo += 15; run.comboT = 3;
   run.bestCombo = Math.max(run.bestCombo, run.combo);
@@ -364,7 +387,7 @@ function catchThief() {
   const tx = PX() + run.thief.dx;
   burst(tx, GY() - 60, 26, '#ffd166', 4, true);
   burst(tx, GY() - 60, 14, '#ff8fb3', 3, true);
-  addFloat(W / 2, H * 0.32, `${item.icon} ${item.name} 되찾았다!  +${bonus}`, '#ffd166', 1.5);
+  addFloat(W / 2, H * 0.32, T('gotItem', ITEM_ICONS[idx], L.items[idx], bonus), '#ffd166', 1.5);
   run.caughtAnim = { x: tx, y: GY(), t: 0 };
   run.thief = null;
   run.thiefTimer = rand(9, 14);
@@ -376,15 +399,15 @@ function catchThief() {
     P.hearts = Math.min(P.maxHearts, P.hearts + 1);
     run.coins += 300;
     Sound.sfx('clear');
-    addFloat(W / 2, H * 0.45, `🎉 소지품 전부 회수! 보너스 +300`, '#7bffc8', 1.4);
-    addFloat(W / 2, H * 0.45 + 44, `…앗! 저 녀석 패거리가 또 훔쳐 달아난다!!`, '#ffffff', 1.0);
+    addFloat(W / 2, H * 0.45, T('stageClear'), '#7bffc8', 1.4);
+    addFloat(W / 2, H * 0.45 + 44, T('stageClear2'), '#ffffff', 1.0);
   }
 }
 
 function thiefEscape() {
   run.thief.escaping = true;
   Sound.sfx('escape');
-  addFloat(W * 0.6, GY() - 220, '"메롱~ 다음에 보자고!"', '#ff8fb3', 1.1);
+  addFloat(W * 0.6, GY() - 220, T('escapeTaunt'), '#ff8fb3', 1.1);
 }
 
 /* ---------------- 피격/획득 ---------------- */
@@ -394,7 +417,7 @@ function hurt(obs) {
     P.shieldT = 0; P.inv = 1.0;
     Sound.sfx('shield');
     if (obs) smash(obs, '#9fd8ff');
-    addFloat(PX(), P.y - 110, '방패가 막아줬다!', '#9fd8ff', 1);
+    addFloat(PX(), P.y - 110, T('shieldSaved'), '#9fd8ff', 1);
     return;
   }
   P.hearts--;
@@ -518,12 +541,12 @@ function updatePlay(dt0) {
       u.dead = true;
       Sound.sfx('power');
       vibrate(30);
-      if (u.type === 'magnet') { P.magnetT = 6 + save.up.magnet * 2; addFloat(px, P.y - 120, '🧲 자석!', '#8fe3ff', 1.1); }
-      if (u.type === 'shield') { P.shieldT = 8 + save.up.shield * 2; addFloat(px, P.y - 120, '🛡️ 방패!', '#9fd8ff', 1.1); }
-      if (u.type === 'boost')  { P.boostT = 2.6; run.shake = 0.2; addFloat(px, P.y - 120, '⚡ 폭주 대시!', '#ffd166', 1.2); }
+      if (u.type === 'magnet') { P.magnetT = 6 + save.up.magnet * 2; addFloat(px, P.y - 120, T('puMagnet'), '#8fe3ff', 1.1); }
+      if (u.type === 'shield') { P.shieldT = 8 + save.up.shield * 2; addFloat(px, P.y - 120, T('puShield'), '#9fd8ff', 1.1); }
+      if (u.type === 'boost')  { P.boostT = 2.6; run.shake = 0.2; addFloat(px, P.y - 120, T('puBoost'), '#ffd166', 1.2); }
       if (u.type === 'heart')  {
-        if (P.hearts < P.maxHearts) { P.hearts++; addFloat(px, P.y - 120, '❤️ 체력 회복!', '#ff8fb3', 1.1); }
-        else { run.coins += 30; addFloat(px, P.y - 120, '❤️ → +30 코인', '#ffd166', 1); }
+        if (P.hearts < P.maxHearts) { P.hearts++; addFloat(px, P.y - 120, T('puHeal'), '#ff8fb3', 1.1); }
+        else { run.coins += 30; addFloat(px, P.y - 120, T('puHeartFull'), '#ffd166', 1); }
       }
       burst(u.x, u.y, 12, '#ffffff', 3, true);
     }
@@ -903,7 +926,7 @@ function button(x, y, w, h, label, cb, opt) {
     rr(x, y, w, h / 2, 16); ctx.fill();
   }
   ctx.fillStyle = o.disabled ? '#6b6f8f' : '#ffffff';
-  ctx.font = `bold ${o.size || 20}px sans-serif`;
+  fitFont(label, w - 18, o.size || 20);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(label, x + w / 2, y + h / 2 + 1);
   ctx.textBaseline = 'alphabetic';
@@ -946,14 +969,14 @@ function drawHUD() {
   for (let i = 0; i < 3; i++) {
     ctx.globalAlpha = i < (run.items % 3 === 0 && run.items > 0 ? 3 : run.items % 3) ? 1 : 0.22;
     ctx.textAlign = 'left';
-    ctx.fillText(ITEMS[i].icon, sx + i * 40, 76);
+    ctx.fillText(ITEM_ICONS[i], sx + i * 40, 76);
   }
   ctx.globalAlpha = 1;
   if (run.stage > 0) {
     ctx.font = 'bold 15px sans-serif';
     ctx.fillStyle = '#7bffc8';
     ctx.textAlign = 'left';
-    ctx.fillText(`STAGE ${run.stage + 1} · ${THEMES[run.theme].name}`, sx - 10, 100);
+    ctx.fillText(T('stageLbl', run.stage + 1, L.themes[run.theme]), sx - 10, 100);
   }
 
   // 파워업 잔여시간 바
@@ -985,10 +1008,11 @@ function drawHUD() {
     rr(W * 0.06, H - 64, W * 0.36, 44, 12); ctx.fill();
     rr(W * 0.58, H - 64, W * 0.36, 44, 12); ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${W < 700 ? 14 : 17}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText('👈 왼쪽 탭: 점프 · 더블점프', W * 0.24, H - 36);
-    ctx.fillText('오른쪽 탭: 펀치 👊', W * 0.76, H - 36);
+    fitFont(T('hintJump'), W * 0.33, W < 700 ? 14 : 17);
+    ctx.fillText(T('hintJump'), W * 0.24, H - 36);
+    fitFont(T('hintPunch'), W * 0.33, W < 700 ? 14 : 17);
+    ctx.fillText(T('hintPunch'), W * 0.76, H - 36);
     ctx.globalAlpha = 1;
   }
 
@@ -1002,13 +1026,14 @@ function drawHUD() {
       ctx.save();
       ctx.translate(W / 2, H * 0.25);
       ctx.scale(pulse, pulse);
-      ctx.fillText('지금이야! 펀치! 👊', 0, 0);
+      fitFont(T('promptPunch'), W * 0.86, 26);
+      ctx.fillText(T('promptPunch'), 0, 0);
       ctx.restore();
     } else if (run.thief.dx > W * 0.6) {
-      ctx.font = 'bold 18px sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.textAlign = 'center';
-      ctx.fillText('앞에 도둑이 달아난다! 쫓아가자! 🏃‍♀️', W / 2, H * 0.25);
+      fitFont(T('promptChase'), W * 0.9, 18);
+      ctx.fillText(T('promptChase'), W / 2, H * 0.25);
     }
   }
 }
@@ -1110,46 +1135,82 @@ function drawMenu() {
 
   ctx.textAlign = 'center';
   const ty = H * 0.24;
-  ctx.font = `900 ${Math.min(58, W * 0.085)}px sans-serif`;
+  fitFont(T('title'), W * 0.92, Math.min(58, W * 0.085), '900');
   ctx.fillStyle = '#ffd166';
   ctx.strokeStyle = 'rgba(0,0,0,0.5)';
   ctx.lineWidth = 8;
-  ctx.strokeText('퇴근길 대추격전', W / 2, ty);
-  ctx.fillText('퇴근길 대추격전', W / 2, ty);
-  ctx.font = `bold ${Math.min(19, W * 0.032)}px sans-serif`;
+  ctx.strokeText(T('title'), W / 2, ty);
+  ctx.fillText(T('title'), W / 2, ty);
   ctx.fillStyle = '#cfd6ff';
-  ctx.fillText('잃어버린 가방과 휴대폰을 되찾아라!', W / 2, ty + 36);
+  fitFont(T('subtitle'), W * 0.88, Math.min(19, W * 0.035));
+  ctx.fillText(T('subtitle'), W / 2, ty + 36);
 
   // 기록
-  ctx.font = 'bold 17px sans-serif';
+  const recTxt = T('records', save.best.toLocaleString(), save.bestDist, save.totalCatches);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(`🏆 최고 점수 ${save.best.toLocaleString()}   ·   🏃‍♀️ 최장 거리 ${save.bestDist}m   ·   👮 잡은 도둑 ${save.totalCatches}명`, W / 2, ty + 72);
+  fitFont(recTxt, W * 0.92, 17);
+  ctx.fillText(recTxt, W / 2, ty + 72);
   ctx.fillStyle = '#ffd166';
-  ctx.fillText(`보유 코인 💰 ${save.bank.toLocaleString()}`, W / 2, ty + 100);
+  ctx.font = 'bold 17px sans-serif';
+  ctx.fillText(T('bank', save.bank.toLocaleString()), W / 2, ty + 100);
 
   const bw = Math.min(320, W * 0.72);
   const bx = W / 2 - bw / 2;
   let by = H * 0.52;
-  button(bx, by, bw, 62, '▶  추격 시작!', () => { startGame(); }, { size: 24 });
+  button(bx, by, bw, 62, T('btnStart'), () => { startGame(); }, { size: 24 });
   by += 76;
-  button(bx, by, bw, 52, '🛍  업그레이드 상점', () => { state = 'shop'; }, { color: '#4a55c9' });
+  button(bx, by, bw, 52, T('btnShop'), () => { state = 'shop'; }, { color: '#4a55c9' });
   by += 64;
-  button(bx, by, bw / 2 - 6, 46, '🎬 스토리', () => { startIntro(); }, { color: '#2a2d45', size: 17 });
-  button(bx + bw / 2 + 6, by, bw / 2 - 6, 46, save.muted ? '🔇 사운드' : '🔊 사운드', () => {
+  const bw3 = (bw - 16) / 3;
+  button(bx, by, bw3, 46, T('btnStory'), () => { startIntro(); }, { color: '#2a2d45', size: 15 });
+  button(bx + bw3 + 8, by, bw3, 46, (save.muted ? '🔇 ' : '🔊 ') + T('btnSound'), () => {
     save.muted = !save.muted; persist();
-  }, { color: '#2a2d45', size: 17 });
+  }, { color: '#2a2d45', size: 15 });
+  button(bx + (bw3 + 8) * 2, by, bw3, 46, '🌐 ' + (save.lang || detectLang()).toUpperCase(), () => {
+    state = 'lang';
+  }, { color: '#2a2d45', size: 15 });
+}
+
+/* ---------------- 언어 선택 ---------------- */
+let langFirstBoot = false;
+function drawLangSelect() {
+  drawBackground(0, globalT * 20, 0.35);
+  ctx.textAlign = 'center';
+  ctx.font = '900 36px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('🌐 Language', W / 2, H * 0.18);
+  const bw = Math.min(230, W * 0.42);
+  const cols = W > bw * 2.4 ? 2 : 1;
+  const rows = Math.ceil(LANG_LIST.length / cols);
+  const totalW = cols * bw + (cols - 1) * 16;
+  const startX = W / 2 - totalW / 2;
+  const startY = H * 0.26;
+  const bh = Math.min(56, (H * 0.62) / rows - 10);
+  LANG_LIST.forEach(([code, name], i) => {
+    const cx = startX + (i % cols) * (bw + 16);
+    const cy = startY + Math.floor(i / cols) * (bh + 12);
+    const active = (save.lang || detectLang()) === code;
+    button(cx, cy, bw, bh, name, () => {
+      setLang(code);
+      if (langFirstBoot) { langFirstBoot = false; startIntro(); }
+      else state = 'menu';
+    }, { color: active ? '#ff5c8a' : '#2a2d45', size: 19 });
+  });
+  if (!langFirstBoot) {
+    button(W / 2 - 90, startY + rows * (bh + 12) + 12, 180, 46, T('back'), () => { state = 'menu'; }, { color: '#4a55c9', size: 17 });
+  }
 }
 
 /* ---------------- 상점 ---------------- */
 function drawShop() {
   drawBackground(1, globalT * 12, 0.45);
   ctx.textAlign = 'center';
-  ctx.font = '900 34px sans-serif';
+  fitFont(T('btnShop'), W * 0.9, 34, '900');
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('🛍 업그레이드 상점', W / 2, 56);
+  ctx.fillText(T('btnShop'), W / 2, 56);
   ctx.font = 'bold 20px sans-serif';
   ctx.fillStyle = '#ffd166';
-  ctx.fillText(`보유 코인 💰 ${save.bank.toLocaleString()}`, W / 2, 90);
+  ctx.fillText(T('bank', save.bank.toLocaleString()), W / 2, 90);
 
   const rw = Math.min(560, W * 0.92);
   const rx = W / 2 - rw / 2;
@@ -1164,12 +1225,13 @@ function drawShop() {
     ctx.font = '30px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(item.icon, rx + 16, ry + rh / 2 + 10);
-    ctx.font = 'bold 18px sans-serif';
+    const [iName, iDesc] = L.shop[item.key];
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(item.name, rx + 62, ry + 28);
-    ctx.font = '13px sans-serif';
+    fitFont(iName, rw - 200, 18);
+    ctx.fillText(iName, rx + 62, ry + 28);
     ctx.fillStyle = '#aab0d8';
-    ctx.fillText(item.desc, rx + 62, ry + 48);
+    fitFont(iDesc, rw - 200, 13, 'normal');
+    ctx.fillText(iDesc, rx + 62, ry + 48);
     // 레벨 핍
     for (let i = 0; i < item.max; i++) {
       ctx.fillStyle = i < lvl ? '#ffd166' : 'rgba(255,255,255,0.15)';
@@ -1189,7 +1251,7 @@ function drawShop() {
       { color: canBuy ? '#ff5c8a' : undefined, disabled: !canBuy && !maxed || maxed, size: 16 });
     ry += rh + 10;
   }
-  button(W / 2 - 90, H - 66, 180, 50, '← 돌아가기', () => { state = 'menu'; }, { color: '#4a55c9' });
+  button(W / 2 - 90, H - 66, 180, 50, T('back'), () => { state = 'menu'; }, { color: '#4a55c9' });
 }
 
 /* ---------------- 일시정지 / 게임오버 ---------------- */
@@ -1199,30 +1261,30 @@ function drawPause() {
   ctx.fillStyle = 'rgba(4,5,16,0.72)';
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
-  ctx.font = '900 42px sans-serif';
+  fitFont(T('pauseTitle'), W * 0.92, 42, '900');
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('잠시 숨 고르는 중…', W / 2, H * 0.35);
+  ctx.fillText(T('pauseTitle'), W / 2, H * 0.35);
   const bw = Math.min(300, W * 0.7);
-  button(W / 2 - bw / 2, H * 0.46, bw, 58, '▶ 계속 달리기', () => { state = 'play'; lastTime = 0; }, { size: 22 });
-  button(W / 2 - bw / 2, H * 0.46 + 72, bw, 50, '🏠 포기하고 메뉴로', () => { endGame(); state = 'menu'; }, { color: '#2a2d45', size: 18 });
+  button(W / 2 - bw / 2, H * 0.46, bw, 58, T('btnResume'), () => { state = 'play'; lastTime = 0; }, { size: 22 });
+  button(W / 2 - bw / 2, H * 0.46 + 72, bw, 50, T('btnGiveUp'), () => { endGame(); state = 'menu'; }, { color: '#2a2d45', size: 18 });
 }
 
 function drawOver() {
   drawBackground(run.theme, run.dist, 0.55);
   drawHeroine(W * 0.16, GY(), { pose: 'stand', eyesClosed: true });
   ctx.textAlign = 'center';
-  ctx.font = '900 40px sans-serif';
   ctx.fillStyle = '#ff8fb3';
-  const title = run.catches > 0 ? '오늘의 추격 종료!' : '도둑을 놓쳐버렸다…';
+  const title = run.catches > 0 ? T('overWin') : T('overLose');
+  fitFont(title, W * 0.94, 40, '900');
   ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 7;
   ctx.strokeText(title, W / 2, H * 0.2);
   ctx.fillText(title, W / 2, H * 0.2);
 
-  ctx.font = 'bold 17px sans-serif';
   ctx.fillStyle = '#cfd6ff';
-  const flavor = run.catches >= 3 ? '경찰서에서 감사장이 도착했다. 그녀는 전설이 되었다.'
-    : run.catches > 0 ? `그래도 물건 ${run.catches}개를 되찾았다! 내일도 달린다!`
-    : '괜찮아, 내일 퇴근길에 다시 만나겠지…';
+  const flavor = run.catches >= 3 ? T('flavorLegend')
+    : run.catches > 0 ? T('flavorSome', run.catches)
+    : T('flavorNone');
+  fitFont(flavor, W * 0.92, 17);
   ctx.fillText(flavor, W / 2, H * 0.2 + 34);
 
   const score = currentScore();
@@ -1233,16 +1295,17 @@ function drawOver() {
   if (isBest) {
     ctx.font = 'bold 20px sans-serif';
     ctx.fillStyle = '#7bffc8';
-    ctx.fillText('🏆 최고 기록 갱신!', W / 2, H * 0.42 + 32);
+    ctx.fillText(T('newBest'), W / 2, H * 0.42 + 32);
   }
 
-  ctx.font = 'bold 17px sans-serif';
+  const statsTxt = T('overStats', Math.floor(run.dist), run.coins, run.catches, run.bestCombo);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(`🏃‍♀️ ${Math.floor(run.dist)}m   💰 +${run.coins}   👊 도둑 ${run.catches}명   🔥 최대콤보 ${run.bestCombo}`, W / 2, H * 0.52);
+  fitFont(statsTxt, W * 0.94, 17);
+  ctx.fillText(statsTxt, W / 2, H * 0.52);
 
   const bw = Math.min(300, W * 0.7);
-  button(W / 2 - bw / 2, H * 0.6, bw, 60, '🔥 다시 도전!', () => { startGame(); }, { size: 23 });
-  button(W / 2 - bw / 2, H * 0.6 + 74, bw, 50, '🏠 메뉴로', () => { state = 'menu'; }, { color: '#4a55c9', size: 18 });
+  button(W / 2 - bw / 2, H * 0.6, bw, 60, T('btnRetry'), () => { startGame(); }, { size: 23 });
+  button(W / 2 - bw / 2, H * 0.6 + 74, bw, 50, T('btnMenu'), () => { state = 'menu'; }, { color: '#4a55c9', size: 18 });
 }
 
 /* ============================================================
@@ -1267,12 +1330,12 @@ function capBox(text, sub) {
   ctx.lineWidth = 2;
   rr(W * 0.06, y, W * 0.88, 64, 12); ctx.stroke();
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.min(19, W * 0.034)}px sans-serif`;
   ctx.textAlign = 'center';
+  fitFont(text, W * 0.82, Math.min(19, W * 0.034));
   ctx.fillText(text, W / 2, y + (sub ? 27 : 38));
   if (sub) {
     ctx.fillStyle = '#aab0d8';
-    ctx.font = `${Math.min(14, W * 0.027)}px sans-serif`;
+    fitFont(sub, W * 0.82, Math.min(14, W * 0.027), 'normal');
     ctx.fillText(sub, W / 2, y + 50);
   }
 }
@@ -1382,7 +1445,7 @@ const CUT = [
       rr(trainX + W * 0.55 - 14, ty + 8, 10, 20, 3); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.12)';
       ctx.fillRect(0, ty + 70, W, 4);
-      capBox('밤 11시 30분. 길고 긴 야근을 끝낸 퇴근길.', '평범한 회사원 수진은 막차에 몸을 실었다.');
+      capBox(T('c1a'), T('c1b'));
     },
   },
   { // 2. 꾸벅꾸벅 조는 수진
@@ -1402,7 +1465,7 @@ const CUT = [
         ctx.fillText('Z', W * 0.47 + i * 22 + zt * 18, H * 0.5 - zt * 60 - i * 12);
       }
       ctx.globalAlpha = 1;
-      capBox('"오늘도 12시간 근무… 눈꺼풀이 너무 무거워…"', '덜컹덜컹. 기분 좋은 흔들림에 스르르 잠이 든다…');
+      capBox(T('c2a'), T('c2b'));
     },
   },
   { // 3. 화들짝! 가방이 없다!
@@ -1429,7 +1492,7 @@ const CUT = [
       ctx.strokeText('!!', 0, 0);
       ctx.fillText('!!', 0, 0);
       ctx.restore();
-      capBox('"…어?! 내 가방!! 내 휴대폰!!!"', '월급날 산 새 폰, 사원증, 지갑까지 전부 그 가방 안에…!');
+      capBox(T('c3a'), T('c3b'));
     },
   },
   { // 4. 승강장 추격 시작
@@ -1439,14 +1502,14 @@ const CUT = [
       const p = clamp(t / 4.2, 0, 1);
       drawThief(lerp(W * 0.55, W * 0.92, p), GY(), { phase: globalT * 14 });
       drawHeroine(lerp(W * 0.05, W * 0.3, p), GY(), { pose: 'run', phase: globalT * 14 });
-      ctx.font = 'bold 30px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffd166';
       ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 6;
-      const shout = '"거기 서!!! 내 가방 내놔!!!"';
+      const shout = T('shout');
+      fitFont(shout, W * 0.9, 30);
       ctx.strokeText(shout, W / 2, H * 0.28);
       ctx.fillText(shout, W / 2, H * 0.28);
-      capBox('저 멀리, 그녀의 가방을 든 수상한 그림자!', '피곤함은 사라졌다. 지금은 오직 추격뿐!');
+      capBox(T('c4a'), T('c4b'));
     },
   },
   { // 5. 타이틀 카드
@@ -1459,22 +1522,22 @@ const CUT = [
       ctx.scale(0.6 + s * 0.4, 0.6 + s * 0.4);
       ctx.globalAlpha = s;
       ctx.textAlign = 'center';
-      ctx.font = `900 ${Math.min(64, W * 0.1)}px sans-serif`;
+      fitFont(T('title'), W * 0.92, Math.min(64, W * 0.1), '900');
       ctx.fillStyle = '#ffd166';
       ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 10;
-      ctx.strokeText('퇴근길 대추격전', 0, 0);
-      ctx.fillText('퇴근길 대추격전', 0, 0);
+      ctx.strokeText(T('title'), 0, 0);
+      ctx.fillText(T('title'), 0, 0);
       ctx.restore();
       ctx.globalAlpha = 1;
       ctx.textAlign = 'center';
-      ctx.font = `bold ${Math.min(20, W * 0.036)}px sans-serif`;
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('그녀의 물건 되찾기 대작전이 시작된다!', W / 2, H * 0.4 + 44);
+      fitFont(T('c5sub'), W * 0.9, Math.min(20, W * 0.036));
+      ctx.fillText(T('c5sub'), W / 2, H * 0.4 + 44);
       if (t > 0.8) {
         ctx.globalAlpha = 0.6 + 0.4 * Math.sin(globalT * 4);
         ctx.font = 'bold 18px sans-serif';
         ctx.fillStyle = '#8fe3ff';
-        ctx.fillText('▶ 화면을 탭하면 시작!', W / 2, H * 0.62);
+        ctx.fillText(T('tap'), W / 2, H * 0.62);
         ctx.globalAlpha = 1;
       }
     },
@@ -1496,7 +1559,7 @@ function drawIntro(dt) {
     ctx.fillStyle = i === cut.i ? '#ffd166' : 'rgba(255,255,255,0.3)';
     ctx.beginPath(); ctx.arc(W / 2 - (CUT.length - 1) * 9 + i * 18, 22, 4, 0, TAU); ctx.fill();
   }
-  button(W - 122, 14, 108, 40, '건너뛰기 ▶', () => finishIntro(), { color: 'rgba(255,255,255,0.15)', size: 15 });
+  button(W - 122, 14, 108, 40, T('skip'), () => finishIntro(), { color: 'rgba(255,255,255,0.15)', size: 15 });
 }
 
 /* ---------------- 메인 루프 ---------------- */
@@ -1512,8 +1575,17 @@ function frame(now) {
 
   switch (state) {
     case 'boot':
-      state = firstRunEver ? 'intro' : 'menu';
-      if (state === 'intro') startIntro();
+      if (!save.lang) {
+        langFirstBoot = true;
+        state = 'lang';
+      } else if (firstRunEver) {
+        startIntro();
+      } else {
+        state = 'menu';
+      }
+      break;
+    case 'lang':
+      drawLangSelect();
       break;
     case 'intro':
       drawIntro(dt);

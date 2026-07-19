@@ -1,6 +1,6 @@
 /* 오프라인 플레이를 위한 캐시-우선 서비스워커 */
-const CACHE = 'rushhour-chase-v1';
-const ASSETS = ['./', './index.html', './game.js', './manifest.json', './icon.svg'];
+const CACHE = 'rushhour-chase-v2';
+const ASSETS = ['./', './index.html', './game.js', './i18n.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
