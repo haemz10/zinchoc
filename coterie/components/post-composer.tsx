@@ -7,6 +7,9 @@ import { uploadImage } from "@/lib/upload";
 
 type CommunityOption = { id: string; name: string };
 
+// Photo-first composer: leads with a big "Add a photo" area, then a short
+// caption — so the feed fills up with images the way Instagram does. A caption
+// alone still works for a quick text update.
 export function PostComposer({
   communities,
   fixedCommunityId,
@@ -39,12 +42,20 @@ export function PostComposer({
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  function pick(f: File | undefined) {
+    if (f && f.type.startsWith("image/")) {
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+    }
+  }
+
   async function post(e: React.FormEvent) {
     e.preventDefault();
     const target = fixedCommunityId ?? communityId;
     if (!userId || busy || !target) return;
     const text = caption.trim();
-    if (!text) return;
+    // Photo-first: a post needs at least a photo (a caption alone is fine too).
+    if (!file && !text) return;
     setBusy(true);
     setError(null);
     const supabase = supabaseBrowser();
@@ -80,8 +91,8 @@ export function PostComposer({
     return (
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-clay/20 bg-white p-4">
         <p className="text-sm text-ink/70">
-          <span className="font-semibold text-ink">Members can post here.</span>{" "}
-          Share what you&apos;re making with your communities.
+          <span className="font-semibold text-ink">Share a photo here.</span>{" "}
+          Members post what they make, grow, and shoot.
         </p>
         <a
           href="/auth"
@@ -98,25 +109,25 @@ export function PostComposer({
       onSubmit={post}
       className="mb-8 rounded-2xl border border-black/5 bg-white p-4 shadow-sm"
     >
-      <label htmlFor="composer-caption" className="sr-only">
-        What are you making?
-      </label>
-      <textarea
-        id="composer-caption"
-        value={caption}
-        onChange={(e) => setCaption(e.target.value)}
-        placeholder="What are you making, growing, baking, or shooting?"
-        rows={2}
-        maxLength={500}
-        className="w-full resize-none rounded-xl border border-ink/10 bg-cream px-4 py-3 text-sm outline-none transition-colors focus:border-ink/40"
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          pick(e.target.files?.[0]);
+          e.target.value = "";
+        }}
       />
-      {preview && (
-        <div className="relative mt-3 inline-block">
+
+      {/* Photo-first: the big first action is adding a photo. */}
+      {preview ? (
+        <div className="relative overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={preview}
-            alt="Attached"
-            className="max-h-48 rounded-xl object-cover"
+            alt="Your photo"
+            className="max-h-96 w-full object-cover"
           />
           <button
             type="button"
@@ -125,14 +136,45 @@ export function PostComposer({
               setPreview(null);
             }}
             aria-label="Remove photo"
-            className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-xs font-bold text-white"
+            className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-sm font-bold text-white"
           >
             ✕
           </button>
         </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/15 bg-cream py-10 text-center transition-colors hover:border-ink/35"
+        >
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-clay/10 text-2xl">
+            📷
+          </span>
+          <span className="font-serif text-lg font-semibold text-ink">
+            Add a photo
+          </span>
+          <span className="text-xs text-ink/50">
+            Share what you made, grew, baked, or shot
+          </span>
+        </button>
       )}
+
+      {/* Caption comes after the photo. */}
+      <label htmlFor="composer-caption" className="sr-only">
+        Add a caption
+      </label>
+      <textarea
+        id="composer-caption"
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        placeholder={preview ? "Add a caption…" : "…or just write a quick update"}
+        rows={2}
+        maxLength={500}
+        className="input mt-3 resize-none"
+      />
+
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        {!fixedCommunityId && communities.length > 0 && (
+        {!fixedCommunityId && communities.length > 0 ? (
           <div className="flex items-center gap-2">
             <label
               htmlFor="composer-community"
@@ -153,31 +195,10 @@ export function PostComposer({
               ))}
             </select>
           </div>
+        ) : (
+          <span />
         )}
-        {fixedCommunityId && <span />}
         <div className="flex items-center gap-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f && f.type.startsWith("image/")) {
-                setFile(f);
-                setPreview(URL.createObjectURL(f));
-              }
-              e.target.value = "";
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            aria-label="Attach a photo"
-            className="grid h-9 w-9 place-items-center rounded-full border border-ink/15 bg-white text-base hover:border-ink/40"
-          >
-            📷
-          </button>
           {error && (
             <p role="alert" className="text-sm font-medium text-clay">
               {error}
@@ -185,10 +206,10 @@ export function PostComposer({
           )}
           <button
             type="submit"
-            disabled={busy || !caption.trim()}
+            disabled={busy || (!file && !caption.trim())}
             className="rounded-full bg-ink px-6 py-2 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-50"
           >
-            {busy ? "Posting…" : "Post"}
+            {busy ? "Posting…" : "Share"}
           </button>
         </div>
       </div>

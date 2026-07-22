@@ -11,19 +11,31 @@ export function PullToRefresh() {
 
   useEffect(() => {
     let startY = 0;
+    let startX = 0;
     let pulling = false;
     let dist = 0;
 
     const onStart = (e: TouchEvent) => {
       if (window.scrollY <= 0) {
         startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
         pulling = true;
         dist = 0;
       }
     };
     const onMove = (e: TouchEvent) => {
       if (!pulling) return;
-      dist = e.touches[0].clientY - startY;
+      const dy = e.touches[0].clientY - startY;
+      const dx = e.touches[0].clientX - startX;
+      // Horizontal gesture (e.g. scrolling the community stories) — never a
+      // refresh, so bail out and leave the tap/scroll untouched.
+      if (Math.abs(dx) > Math.abs(dy)) {
+        pulling = false;
+        dist = 0;
+        setPull(0);
+        return;
+      }
+      dist = dy;
       if (dist > 0 && window.scrollY <= 0) {
         setPull(Math.min(dist, 120));
       } else {

@@ -3,7 +3,7 @@
 //  - navigations: network-first, fall back to a cached offline page when down
 //  - static assets (icons, images, fonts): cache-first for instant loads
 //  - everything else (Supabase API, etc.): straight to the network
-const VERSION = "coterie-v1";
+const VERSION = "coterie-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PRECACHE = ["/offline.html", "/icon-192.png", "/icon-512.png"];
 
