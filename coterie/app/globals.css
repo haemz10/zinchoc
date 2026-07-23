@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --font-sans / --font-serif are provided by next/font in app/layout.tsx */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* our PullToRefresh component handles refresh; stop native rubber-banding
+       from fighting it */
+    overscroll-behavior-y: contain;
+  }
+  body {
+    @apply bg-cream text-ink antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Remove the 300ms tap delay and stray double-tap zoom so links/buttons
+     respond instantly on touch devices. */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+  /* iOS zooms the page when focusing a control smaller than 16px — and the
+     page can stay stuck zoomed. Keep every control at 16px on phones. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@layer utilities {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  /* Masonry-style columns for the community feed */
+  .masonry {
+    column-gap: 1rem;
+    column-count: 2;
+  }
+  @media (min-width: 768px) {
+    .masonry {
+      column-count: 3;
+    }
+  }
+  @media (min-width: 1100px) {
+    .masonry {
+      column-count: 4;
+    }
+  }
+  .masonry > * {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+  /* Hide scrollbars on horizontal story rows */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  /* Shared form input (settings, composers) */
+  .input {
+    @apply w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm outline-none focus:border-ink/40;
+  }
+}
