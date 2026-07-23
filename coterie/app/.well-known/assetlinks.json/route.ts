@@ -8,10 +8,12 @@ import { NextResponse } from "next/server";
 // generates the Android package (also visible in Play Console → Setup → App
 // signing → "SHA-256 certificate fingerprint"). More than one is allowed —
 // include both the upload key and Google Play's app-signing key.
-const PACKAGE_NAME = "club.coterie.twa";
+const PACKAGE_NAME = "com.coterie.community";
 const SHA256_FINGERPRINTS: string[] = [
-  // PWABuilder signing key (from the generated package's assetlinks.json)
-  "BA:1E:EF:9B:A8:05:B4:7B:CE:0D:74:9A:06:17:54:95:DB:D4:03:93:7F:98:76:C7:43:53:4A:65:8B:34:48:2B",
+  // Upload key (android.keystore, alias "coterie") used to sign the .aab.
+  "8C:EF:C7:88:FC:90:83:4A:1F:4E:4F:CC:D0:E1:F8:F0:0A:E8:D4:1F:12:F6:A4:81:BF:FE:70:8E:83:13:08:CE",
+  // TODO: after the first upload, add Google Play's app-signing key SHA-256
+  // (Play Console → Setup → App signing → "App signing key certificate").
 ];
 
 export function GET() {
