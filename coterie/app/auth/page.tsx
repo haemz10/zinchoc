@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { SiteHeader } from "@/components/site-header";
@@ -24,16 +24,6 @@ export default function AuthPage() {
   // Password-reset flow.
   const [resetting, setResetting] = useState(false);
   const [resetSentTo, setResetSentTo] = useState<string | null>(null);
-  // Founding Club — only the first 10 members can join.
-  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
-
-  useEffect(() => {
-    supabaseBrowser()
-      .rpc("coterie_founding_spots_left")
-      .then(({ data }) => setSpotsLeft(typeof data === "number" ? data : null));
-  }, []);
-
-  const foundingFull = spotsLeft === 0;
 
   async function requestReset(e: React.FormEvent) {
     e.preventDefault();
@@ -76,12 +66,6 @@ export default function AuthPage() {
 
     try {
       if (mode === "signup") {
-        if (foundingFull) {
-          setError(
-            "Coterie is in founding mode and all 10 founding spots are taken. Ask a founding member to invite you when spots open."
-          );
-          return;
-        }
         const cleanUsername = username.trim().toLowerCase();
         if (!/^[a-z0-9_]{3,24}$/.test(cleanUsername)) {
           setError(
@@ -102,12 +86,7 @@ export default function AuthPage() {
           },
         });
         if (error) {
-          const m = error.message.toLowerCase();
-          setError(
-            m.includes("founding") || m.includes("database error")
-              ? "Coterie is in founding mode and all 10 founding spots are taken."
-              : error.message
-          );
+          setError(error.message);
           return;
         }
         if (!data.session) {
@@ -303,20 +282,6 @@ export default function AuthPage() {
               : "Sign in to post and join communities."}
           </p>
 
-          {mode === "signup" && spotsLeft !== null && (
-            <div
-              className={`mt-4 rounded-2xl px-4 py-3 text-sm font-medium ${
-                foundingFull
-                  ? "bg-clay/10 text-clay"
-                  : "bg-moss/10 text-moss"
-              }`}
-            >
-              {foundingFull
-                ? "🔒 Founding Club is full — all 10 founding spots are taken. Existing members can still sign in."
-                : `✨ Founding Club — only ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left.`}
-            </div>
-          )}
-
           <div className="mt-6 grid grid-cols-2 rounded-full border border-ink/10 p-1 text-sm font-semibold">
             {(["signup", "signin"] as const).map((m) => (
               <button
@@ -405,15 +370,13 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              disabled={busy || (mode === "signup" && foundingFull)}
+              disabled={busy}
               className="w-full rounded-full bg-ink py-3 text-sm font-semibold text-cream transition-transform hover:-translate-y-0.5 disabled:opacity-60"
             >
               {busy
                 ? "One moment…"
                 : mode === "signup"
-                  ? foundingFull
-                    ? "Founding Club full"
-                    : "Create account"
+                  ? "Create account"
                   : "Sign in"}
             </button>
           </form>
