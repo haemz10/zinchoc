@@ -1,0 +1,278 @@
+// Server-side read helpers. Public data only (RLS: select allowed for anon),
+// fetched straight from PostgREST so server components need no auth session.
+import { SUPABASE_KEY, SUPABASE_URL } from "./supabase-config";
+
+const headers = { apikey: SUPABASE_KEY };
+
+export type LivePost = {
+  id: string;
+  user_id: string;
+  caption: string;
+  image: string | null;
+  created_at: string;
+  community: { id: string; name: string } | null;
+  author: {
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  likes: { count: number }[];
+  comments: { count: number }[];
+};
+
+const POST_SELECT =
+  `id,user_id,caption,image,created_at,` +
+  `community:coterie_communities(id,name),` +
+  `author:coterie_profiles!coterie_posts_user_id_fkey(username,display_name,avatar_url),` +
+  `likes:coterie_likes(count),` +
+  `comments:coterie_comments(count)`;
+
+export async function fetchLivePosts(): Promise<LivePost[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_posts?select=${POST_SELECT}` +
+        `&order=created_at.desc&limit=30`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as LivePost[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCommunityPosts(
+  communityId: string
+): Promise<LivePost[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_posts?select=${POST_SELECT}` +
+        `&community_id=eq.${encodeURIComponent(communityId)}` +
+        `&order=created_at.desc&limit=50`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as LivePost[];
+  } catch {
+    return [];
+  }
+}
+
+export type Community = {
+  id: string;
+  name: string;
+  blurb: string;
+  cover: string | null;
+  created_by: string | null;
+};
+
+export async function fetchCommunity(id: string): Promise<Community | null> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_communities?select=id,name,blurb,cover,created_by` +
+        `&id=eq.${encodeURIComponent(id)}&limit=1`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Community[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchAllCommunities(): Promise<Community[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_communities?select=id,name,blurb,cover,created_by` +
+        `&order=created_at.asc`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Community[];
+  } catch {
+    return [];
+  }
+}
+
+export type Listing = {
+  id: string;
+  user_id: string;
+  title: string;
+  price: string;
+  currency: string;
+  buy_url: string | null;
+  description: string | null;
+  image: string | null;
+  sold: boolean;
+  created_at: string;
+  community: { id: string; name: string } | null;
+  maker: { username: string; display_name: string } | null;
+};
+
+const LISTING_SELECT =
+  `id,user_id,title,price,currency,buy_url,description,image,sold,created_at,` +
+  `community:coterie_communities(id,name),` +
+  `maker:coterie_profiles!coterie_listings_user_id_fkey(username,display_name)`;
+
+export async function fetchListings(): Promise<Listing[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&order=created_at.desc&limit=30`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Listing[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCommunityListings(
+  communityId: string
+): Promise<Listing[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&community_id=eq.${encodeURIComponent(communityId)}` +
+        `&order=created_at.desc&limit=30`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Listing[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchListing(id: string): Promise<Listing | null> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&id=eq.${encodeURIComponent(id)}&limit=1`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Listing[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export type Profile = {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+};
+
+export async function fetchProfileByUsername(
+  username: string
+): Promise<Profile | null> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_profiles?select=id,username,display_name,avatar_url,bio,created_at` +
+        `&username=eq.${encodeURIComponent(username)}&limit=1`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Profile[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchUserPosts(userId: string): Promise<LivePost[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_posts?select=${POST_SELECT}` +
+        `&user_id=eq.${encodeURIComponent(userId)}` +
+        `&order=created_at.desc&limit=50`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as LivePost[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchUserCommunities(
+  userId: string
+): Promise<Community[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_communities?select=id,name,blurb,cover,created_by` +
+        `&created_by=eq.${encodeURIComponent(userId)}&order=created_at.desc`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Community[];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchUserListings(userId: string): Promise<Listing[]> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_listings?select=${LISTING_SELECT}` +
+        `&user_id=eq.${encodeURIComponent(userId)}` +
+        `&order=created_at.desc&limit=50`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Listing[];
+  } catch {
+    return [];
+  }
+}
+
+
+export async function fetchFollowCounts(
+  userId: string
+): Promise<{ followers: number; following: number }> {
+  try {
+    const enc = encodeURIComponent(userId);
+    const opts = { headers, cache: "no-store" as const };
+    const [fRes, gRes] = await Promise.all([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/coterie_follows?select=follower_id&followee_id=eq.${enc}`,
+        opts
+      ),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/coterie_follows?select=followee_id&follower_id=eq.${enc}`,
+        opts
+      ),
+    ]);
+    const followers = fRes.ok ? ((await fRes.json()) as unknown[]).length : 0;
+    const following = gRes.ok ? ((await gRes.json()) as unknown[]).length : 0;
+    return { followers, following };
+  } catch {
+    return { followers: 0, following: 0 };
+  }
+}
+
+export type MemberCounts = Record<string, number>;
+
+export async function fetchMemberCounts(): Promise<MemberCounts> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/coterie_memberships?select=community_id`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return {};
+    const rows = (await res.json()) as { community_id: string }[];
+    const counts: MemberCounts = {};
+    for (const r of rows)
+      counts[r.community_id] = (counts[r.community_id] ?? 0) + 1;
+    return counts;
+  } catch {
+    return {};
+  }
+}
