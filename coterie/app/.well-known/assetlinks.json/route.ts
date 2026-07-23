@@ -10,8 +10,9 @@ import { NextResponse } from "next/server";
 // include both the upload key and Google Play's app-signing key.
 const PACKAGE_NAME = "com.coterie.community";
 const SHA256_FINGERPRINTS: string[] = [
-  // Upload key (android.keystore, alias "coterie") used to sign the .aab.
-  "8C:EF:C7:88:FC:90:83:4A:1F:4E:4F:CC:D0:E1:F8:F0:0A:E8:D4:1F:12:F6:A4:81:BF:FE:70:8E:83:13:08:CE",
+  // Upload key (PWABuilder signing.keystore, alias "my-key-alias") — the key
+  // registered with Play as this app's upload key. SHA-1 0B:59:CA:30:...
+  "BA:1E:EF:9B:A8:05:B4:7B:CE:0D:74:9A:06:17:54:95:DB:D4:03:93:7F:98:76:C7:43:53:4A:65:8B:34:48:2B",
   // TODO: after the first upload, add Google Play's app-signing key SHA-256
   // (Play Console → Setup → App signing → "App signing key certificate").
 ];
