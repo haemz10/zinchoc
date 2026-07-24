@@ -32,6 +32,7 @@ type ProductRow = {
   unit: string;
   min_order: number;
   image_key: string | null;
+  video_key: string | null;
   sort: number;
   visible: number;
   category: string;
@@ -47,6 +48,7 @@ function rowToProduct(r: ProductRow): Product {
     unit: r.unit,
     min_order: r.min_order,
     image_key: r.image_key,
+    video_key: r.video_key ?? null,
     sort: r.sort,
     visible: r.visible,
     category: r.category ?? "wedding",
@@ -61,7 +63,7 @@ export async function getVisibleProducts(): Promise<Product[]> {
   try {
     const res = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
       )
       .all<ProductRow>();
     const rows = res.results ?? [];
@@ -77,7 +79,7 @@ export async function getAllProducts(): Promise<Product[]> {
   if (!db) return [];
   const res = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products ORDER BY sort ASC, id ASC",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products ORDER BY sort ASC, id ASC",
     )
     .all<ProductRow>();
   return (res.results ?? []).map(rowToProduct);
@@ -88,7 +90,7 @@ export async function getProductById(id: number): Promise<Product | null> {
   if (!db) return null;
   const row = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE id = ?",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE id = ?",
     )
     .bind(id)
     .first<ProductRow>();
@@ -267,11 +269,20 @@ export async function setProductVisible(id: number, visible: number): Promise<vo
     .run();
 }
 
-export async function setProductImageKey(id: number, key: string): Promise<void> {
+export async function setProductImageKey(id: number, key: string | null): Promise<void> {
   const db = getDb();
   if (!db) return;
   await db
     .prepare("UPDATE products SET image_key = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(key, id)
+    .run();
+}
+
+export async function setProductVideoKey(id: number, key: string | null): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .prepare("UPDATE products SET video_key = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(key, id)
     .run();
 }
@@ -318,7 +329,7 @@ export async function getVisibleProductBySlug(slug: string): Promise<Product | n
   try {
     const row = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE slug = ? AND visible = 1",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE slug = ? AND visible = 1",
       )
       .bind(slug)
       .first<ProductRow>();
@@ -447,7 +458,7 @@ export async function getVisibleGalleryImages(): Promise<GalleryImage[]> {
   try {
     const res = await db
       .prepare(
-        "SELECT id, image_key, caption, sort, visible, created_at FROM gallery_images WHERE visible = 1 ORDER BY sort ASC, id ASC",
+        "SELECT id, image_key, video_key, caption, sort, visible, created_at FROM gallery_images WHERE visible = 1 ORDER BY sort ASC, id ASC",
       )
       .all<GalleryImage>();
     return res.results ?? [];
@@ -461,24 +472,37 @@ export async function getAllGalleryImages(): Promise<GalleryImage[]> {
   if (!db) return [];
   const res = await db
     .prepare(
-      "SELECT id, image_key, caption, sort, visible, created_at FROM gallery_images ORDER BY sort ASC, id ASC",
+      "SELECT id, image_key, video_key, caption, sort, visible, created_at FROM gallery_images ORDER BY sort ASC, id ASC",
     )
     .all<GalleryImage>();
   return res.results ?? [];
 }
 
-export async function insertGalleryImage(imageKey: string): Promise<void> {
+/** Insert a gallery item. An image item stores image_key; a video item stores
+ * video_key (image_key null). Returns the new row id so an upload can, if it
+ * wants, immediately attach the other kind of media. */
+export async function insertGalleryItem(
+  kind: "image" | "video",
+  key: string,
+): Promise<number | null> {
   const db = getDb();
-  if (!db) return;
+  if (!db) return null;
   const row = await db
     .prepare("SELECT COALESCE(MAX(sort), 0) AS max_sort FROM gallery_images")
     .first<{ max_sort: number }>();
-  await db
+  const col = kind === "video" ? "video_key" : "image_key";
+  const res = await db
     .prepare(
-      "INSERT INTO gallery_images (image_key, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))",
+      `INSERT INTO gallery_images (${col}, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))`,
     )
-    .bind(imageKey, (row?.max_sort ?? 0) + 1)
+    .bind(key, (row?.max_sort ?? 0) + 1)
     .run();
+  return Number(res.meta?.last_row_id ?? 0) || null;
+}
+
+/** Back-compat: insert an image-only gallery item. */
+export async function insertGalleryImage(imageKey: string): Promise<void> {
+  await insertGalleryItem("image", imageKey);
 }
 
 export async function setGalleryCaption(id: number, caption: string): Promise<void> {

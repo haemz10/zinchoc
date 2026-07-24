@@ -20,7 +20,7 @@ import appMetaJson from "../app-meta.json";
 declare const __HF_DESIGN_INSPECTOR__: boolean;
 
 // Built-in defaults for any field that isn't set in app-meta.json.
-const DEFAULT_TITLE = "Zin Choc | Wedding Chocolate Bomboniere, Made in Australia";
+const DEFAULT_TITLE = "Zin Choc | Artisan Chocolate Catering, Made in Australia";
 const DEFAULT_DESCRIPTION =
   "Luxury artisan chocolate, made in Australia: wedding bomboniere and collectible art bonbon boxes.";
 

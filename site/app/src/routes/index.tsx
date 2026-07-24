@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
     const origin = loaderData?.origin ?? "";
     const ogKey = loaderData?.settings.og_image_key?.trim() ?? "";
     const ogImage = origin ? (ogKey ? `${origin}/img/${ogKey}` : `${origin}/og-cover.jpg`) : "";
-    const title = "Zin Choc | Wedding Chocolate Bomboniere, Made in Australia";
+    const title = "Zin Choc | Artisan Chocolate Catering, Made in Australia";
     const description =
       "Luxury artisan chocolate, handcrafted to order in Australia: wedding bomboniere and collectible art bonbon boxes.";
     return {

@@ -31,6 +31,8 @@ import {
   setGalleryCaption,
   setGalleryVisible,
   setOrderStatus,
+  setProductImageKey,
+  setProductVideoKey,
   setProductVisible,
   setSetting,
   updateFaqItem,
@@ -114,6 +116,22 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireAdmin();
     await deleteProduct(data.id);
+    return { ok: true as const };
+  });
+
+/** Remove a product's photo or video (the R2 object is left in place; only the
+ * reference is cleared so the public site stops showing it). */
+export const adminClearProductMedia = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.number().int(), kind: z.enum(["image", "video"]) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    if (data.kind === "video") {
+      await setProductVideoKey(data.id, null);
+    } else {
+      await setProductImageKey(data.id, null);
+    }
     return { ok: true as const };
   });
 

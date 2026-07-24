@@ -11,6 +11,7 @@ export type Product = {
   unit: string;
   min_order: number;
   image_key: string | null;
+  video_key: string | null;
   sort: number;
   visible: number;
   category: string;
@@ -18,7 +19,8 @@ export type Product = {
 
 export type GalleryImage = {
   id: number;
-  image_key: string;
+  image_key: string | null;
+  video_key: string | null;
   caption: string | null;
   sort: number;
   visible: number;
@@ -161,7 +163,7 @@ export const DEFAULT_SETTINGS: Settings = {
     "Photographs from the atelier are on their way. In the meantime, the collection is the best introduction to our work.",
   lead_time_text: "4 to 6 weeks from design approval",
   footer_blurb:
-    "Handcrafted wedding chocolate bomboniere and art chocolate boxes, made in Melbourne, Australia. Curated artisan chocolates.",
+    "Handcrafted artisan chocolate catering and art chocolate boxes, made in Melbourne, Australia. Curated artisan chocolates.",
   show_page_privacy: "1",
   show_page_terms: "1",
   show_page_shipping: "1",
@@ -196,6 +198,7 @@ export const SEED_PRODUCTS: Product[] = [
     unit: "per piece",
     min_order: 50,
     image_key: null,
+    video_key: null,
     sort: 1,
     visible: 1,
     category: "wedding",
@@ -210,6 +213,7 @@ export const SEED_PRODUCTS: Product[] = [
     unit: "per piece",
     min_order: 50,
     image_key: null,
+    video_key: null,
     sort: 2,
     visible: 1,
     category: "wedding",

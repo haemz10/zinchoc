@@ -45,13 +45,13 @@ export function GalleryTab() {
     void refresh();
   }, [refresh]);
 
-  async function upload(file: File) {
+  async function upload(file: File, kind: "image" | "video") {
     setError("");
     setUploading(true);
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("target", "gallery");
+      form.append("target", kind === "video" ? "gallery_video" : "gallery");
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
       const json = (await res.json()) as { ok: boolean; error?: string };
       if (!json.ok) setError(json.error ?? "Upload failed.");
@@ -104,19 +104,34 @@ export function GalleryTab() {
     <div>
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-display text-xl text-ink">Gallery</h2>
-        <label className={`${btn} cursor-pointer bg-ink text-beige`}>
-          {uploading ? "Uploading..." : "Upload image"}
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void upload(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className={`${btn} cursor-pointer bg-ink text-beige`}>
+            {uploading ? "Uploading..." : "Upload image"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void upload(f, "image");
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
+            {uploading ? "Uploading..." : "Upload video"}
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void upload(f, "video");
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
       </div>
 
       {error ? (
@@ -135,11 +150,21 @@ export function GalleryTab() {
           {images.map((img, i) => (
             <li key={img.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-panel">
-                <img
-                  src={`/img/${img.image_key}`}
-                  alt={img.caption ?? "Gallery image"}
-                  className="h-full w-full object-cover"
-                />
+                {img.video_key ? (
+                  <video
+                    src={`/img/${img.video_key}`}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : img.image_key ? (
+                  <img
+                    src={`/img/${img.image_key}`}
+                    alt={img.caption ?? "Gallery image"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
               </div>
 
               <div className="min-w-0 flex-1">

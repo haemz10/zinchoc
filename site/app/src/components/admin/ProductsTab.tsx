@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
+  adminClearProductMedia,
   adminDeleteProduct,
   adminListProducts,
   adminMoveProduct,
@@ -10,7 +11,8 @@ import {
 import { formatAud, type Product } from "../../lib/types";
 
 // Admin products tab: list, create, edit, hide/show, reorder, delete with
-// confirm, image upload to R2 with thumbnail preview.
+// confirm, and a media panel (photo + short video clip) both inside the edit
+// form and on each product row. Media uploads go to R2 via /api/admin/upload.
 
 type Draft = {
   id?: number;
@@ -23,6 +25,8 @@ type Draft = {
   sort: string;
   visible: boolean;
   category: string;
+  image_key: string | null;
+  video_key: string | null;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -35,6 +39,8 @@ const EMPTY_DRAFT: Draft = {
   sort: "0",
   visible: true,
   category: "wedding",
+  image_key: null,
+  video_key: null,
 };
 
 const field =
@@ -54,6 +60,8 @@ function draftFromProduct(p: Product): Draft {
     sort: String(p.sort),
     visible: p.visible === 1,
     category: p.category === "art" ? "art" : "wedding",
+    image_key: p.image_key,
+    video_key: p.video_key,
   };
 }
 
@@ -63,14 +71,19 @@ export function ProductsTab() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saveError, setSaveError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [uploadingId, setUploadingId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState<{ id: number; kind: "image" | "video" } | null>(null);
   const [uploadError, setUploadError] = useState("");
-  const fileInputs = useRef(new Map<number, HTMLInputElement>());
 
   const refresh = useCallback(async () => {
     try {
       const res = await adminListProducts();
       setProducts(res.products);
+      // Keep an open edit draft's media previews in sync with the DB.
+      setDraft((d) => {
+        if (!d?.id) return d;
+        const p = res.products.find((x) => x.id === d.id);
+        return p ? { ...d, image_key: p.image_key, video_key: p.video_key } : d;
+      });
     } finally {
       setLoading(false);
     }
@@ -125,6 +138,7 @@ export function ProductsTab() {
       return;
     }
     await adminDeleteProduct({ data: { id: p.id } });
+    if (draft?.id === p.id) setDraft(null);
     await refresh();
   }
 
@@ -138,14 +152,14 @@ export function ProductsTab() {
     await refresh();
   }
 
-  async function uploadImage(p: Product, file: File) {
+  async function uploadMedia(id: number, kind: "image" | "video", file: File) {
     setUploadError("");
-    setUploadingId(p.id);
+    setUploading({ id, kind });
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("target", "product");
-      form.append("product_id", String(p.id));
+      form.append("target", kind === "video" ? "product_video" : "product");
+      form.append("product_id", String(id));
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
       const json = (await res.json()) as { ok: boolean; error?: string };
       if (!json.ok) setUploadError(json.error ?? "Upload failed.");
@@ -153,8 +167,19 @@ export function ProductsTab() {
     } catch {
       setUploadError("Upload failed. Please try again.");
     } finally {
-      setUploadingId(null);
+      setUploading(null);
     }
+  }
+
+  async function clearMedia(id: number, kind: "image" | "video") {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Remove this ${kind === "video" ? "video" : "photo"} from the product?`)
+    ) {
+      return;
+    }
+    await adminClearProductMedia({ data: { id, kind } });
+    await refresh();
   }
 
   if (loading) {
@@ -281,6 +306,37 @@ export function ProductsTab() {
               <span className="font-body text-sm text-ink/80">Visible on the public site</span>
             </label>
           </div>
+
+          {/* Photo + video for this product */}
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/60">
+              Photo &amp; video
+            </p>
+            {draft.id ? (
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <MediaBox
+                  kind="image"
+                  keyValue={draft.image_key}
+                  uploading={uploading?.id === draft.id && uploading.kind === "image"}
+                  onPick={(f) => uploadMedia(draft.id!, "image", f)}
+                  onClear={() => clearMedia(draft.id!, "image")}
+                />
+                <MediaBox
+                  kind="video"
+                  keyValue={draft.video_key}
+                  uploading={uploading?.id === draft.id && uploading.kind === "video"}
+                  onPick={(f) => uploadMedia(draft.id!, "video", f)}
+                  onClear={() => clearMedia(draft.id!, "video")}
+                />
+              </div>
+            ) : (
+              <p className="mt-2 rounded-sm border border-gold/40 bg-gold/10 px-3 py-2 font-body text-xs leading-relaxed text-ink">
+                Save the product first, then the photo and video upload boxes appear here. You can
+                also upload them any time from the product row below.
+              </p>
+            )}
+          </div>
+
           <div className="mt-5 flex gap-3">
             <button
               type="button"
@@ -295,7 +351,7 @@ export function ProductsTab() {
               onClick={() => setDraft(null)}
               className={`${btn} border border-ink/25 text-ink`}
             >
-              Cancel
+              {draft.id ? "Close" : "Cancel"}
             </button>
           </div>
         </div>
@@ -316,9 +372,16 @@ export function ProductsTab() {
                   alt={`${p.name} thumbnail`}
                   className="h-full w-full object-cover"
                 />
+              ) : p.video_key ? (
+                <video
+                  src={`/img/${p.video_key}`}
+                  className="h-full w-full object-cover"
+                  muted
+                  playsInline
+                />
               ) : (
                 <span className="px-1 text-center font-body text-[0.6rem] uppercase tracking-wide text-ink/40">
-                  No photo
+                  No media
                 </span>
               )}
             </div>
@@ -335,6 +398,7 @@ export function ProductsTab() {
               <p className="mt-0.5 font-body text-xs text-ink/60">
                 {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order},{" "}
                 {p.category === "art" ? "art" : "wedding"}
+                {p.video_key ? " · has video" : ""}
               </p>
             </div>
 
@@ -365,21 +429,35 @@ export function ProductsTab() {
                 {p.visible === 1 ? "Hide" : "Show"}
               </button>
               <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
-                {uploadingId === p.id
+                {uploading?.id === p.id && uploading.kind === "image"
                   ? "Uploading..."
                   : p.image_key
                     ? "Replace photo"
-                    : "Upload photo"}
+                    : "Photo"}
                 <input
-                  ref={(el) => {
-                    if (el) fileInputs.current.set(p.id, el);
-                  }}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="sr-only"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) void uploadImage(p, f);
+                    if (f) void uploadMedia(p.id, "image", f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
+                {uploading?.id === p.id && uploading.kind === "video"
+                  ? "Uploading..."
+                  : p.video_key
+                    ? "Replace video"
+                    : "Video"}
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadMedia(p.id, "video", f);
                     e.target.value = "";
                   }}
                 />
@@ -406,8 +484,84 @@ export function ProductsTab() {
         ))}
       </ul>
       <p className="mt-3 font-body text-xs text-ink/50">
-        Photos: JPEG, PNG or WebP, up to 5MB. Portrait 4:5 crops look best in the collection grid.
+        Photos: JPEG, PNG or WebP up to 5MB (portrait 4:5 looks best). Video: MP4, WebM or MOV up to
+        50MB, kept short (a few seconds). When a video is set it plays in the collection; otherwise
+        the photo shows.
       </p>
+    </div>
+  );
+}
+
+// One media slot (photo or video) inside the edit form: preview + upload +
+// remove.
+function MediaBox({
+  kind,
+  keyValue,
+  uploading,
+  onPick,
+  onClear,
+}: {
+  kind: "image" | "video";
+  keyValue: string | null;
+  uploading: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+}) {
+  const label = kind === "video" ? "Video clip" : "Photo";
+  const accept =
+    kind === "video" ? "video/mp4,video/webm,video/quicktime" : "image/jpeg,image/png,image/webp";
+  return (
+    <div className="rounded-sm border border-ink/15 bg-panel/40 p-3">
+      <p className="font-body text-xs font-medium text-ink/70">{label}</p>
+      <div className="mt-2 flex h-40 items-center justify-center overflow-hidden rounded-sm bg-panel">
+        {keyValue ? (
+          kind === "video" ? (
+            <video
+              src={`/img/${keyValue}`}
+              className="h-full w-full object-cover"
+              controls
+              muted
+              playsInline
+            />
+          ) : (
+            <img
+              src={`/img/${keyValue}`}
+              alt={`${label} preview`}
+              className="h-full w-full object-cover"
+            />
+          )
+        ) : (
+          <span className="font-body text-xs uppercase tracking-wide text-ink/40">Not set</span>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <label className={`${btn} cursor-pointer bg-ink text-beige`}>
+          {uploading
+            ? "Uploading..."
+            : keyValue
+              ? `Replace ${label.toLowerCase()}`
+              : `Upload ${label.toLowerCase()}`}
+          <input
+            type="file"
+            accept={accept}
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {keyValue ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+          >
+            Remove
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

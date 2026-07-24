@@ -15,7 +15,18 @@ export function ProductTile({ product, logoKey }: { product: Product; logoKey?: 
       href={`/order?piece=${encodeURIComponent(product.slug)}`}
       className="group flex flex-col transition-transform duration-300 hover:-translate-y-1"
     >
-      {product.image_key ? (
+      {product.video_key ? (
+        <video
+          src={`/img/${product.video_key}`}
+          poster={product.image_key ? `/img/${product.image_key}` : undefined}
+          className="aspect-[4/5] w-full rounded-sm object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+      ) : product.image_key ? (
         <img
           src={`/img/${product.image_key}`}
           alt={`${product.name}, a Zin Choc wedding chocolate piece`}

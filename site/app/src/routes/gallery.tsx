@@ -109,12 +109,25 @@ function GalleryPage() {
             <div className="columns-2 gap-4 md:columns-3 md:gap-6">
               {images.map((img) => (
                 <figure key={img.id} className="mb-4 break-inside-avoid md:mb-6">
-                  <img
-                    src={`/img/${img.image_key}`}
-                    alt={img.caption?.trim() || "Handcrafted Zin Choc chocolate from the atelier"}
-                    loading="lazy"
-                    className="w-full rounded-sm object-cover"
-                  />
+                  {img.video_key ? (
+                    <video
+                      src={`/img/${img.video_key}`}
+                      poster={img.image_key ? `/img/${img.image_key}` : undefined}
+                      className="w-full rounded-sm object-cover"
+                      controls
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : img.image_key ? (
+                    <img
+                      src={`/img/${img.image_key}`}
+                      alt={img.caption?.trim() || "Handcrafted Zin Choc chocolate from the atelier"}
+                      loading="lazy"
+                      className="w-full rounded-sm object-cover"
+                    />
+                  ) : null}
                   {img.caption?.trim() ? (
                     <figcaption className="mt-2 font-body text-xs leading-relaxed text-ink/60">
                       {img.caption}

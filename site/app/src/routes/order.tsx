@@ -31,7 +31,7 @@ export const Route = createFileRoute("/order")({
       { title: "Order | Zin Choc" },
       {
         name: "description",
-        content: "Place an order for Zin Choc handcrafted wedding chocolate bomboniere.",
+        content: "Place an order for Zin Choc handcrafted artisan chocolate catering.",
       },
       { name: "robots", content: "noindex, follow" },
     ],
