@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { isAuthed } from "../../../lib/auth.server";
 import {
+  addProductImage,
   getBucket,
   getProductById,
   insertGalleryImage,
   insertGalleryItem,
-  setProductImageKey,
   setProductVideoKey,
   setSetting,
 } from "../../../lib/data.server";
@@ -132,9 +132,11 @@ export const Route = createFileRoute("/api/admin/upload")({
             await setProductVideoKey(productId, key);
             return Response.json({ ok: true, key });
           }
+          // Append a photo (a product can have several). The first also becomes
+          // the cover, handled inside addProductImage.
           const key = `products/${product.slug}/${Date.now()}.${ext}`;
           await put(key);
-          await setProductImageKey(productId, key);
+          await addProductImage(productId, key);
           return Response.json({ ok: true, key });
         }
 

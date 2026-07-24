@@ -11,6 +11,7 @@ import { getDb } from "../../../lib/data.server";
 const TABLES = [
   "settings",
   "products",
+  "product_images",
   "gallery_images",
   "faq_items",
   "legal_pages",

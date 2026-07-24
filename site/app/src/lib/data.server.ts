@@ -257,7 +257,10 @@ export async function updateProduct(id: number, input: ProductInput): Promise<vo
 export async function deleteProduct(id: number): Promise<void> {
   const db = getDb();
   if (!db) return;
-  await db.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
+  await db.batch([
+    db.prepare("DELETE FROM product_images WHERE product_id = ?").bind(id),
+    db.prepare("DELETE FROM products WHERE id = ?").bind(id),
+  ]);
 }
 
 export async function setProductVisible(id: number, visible: number): Promise<void> {
@@ -285,6 +288,91 @@ export async function setProductVideoKey(id: number, key: string | null): Promis
     .prepare("UPDATE products SET video_key = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(key, id)
     .run();
+}
+
+// ---- Product images (multiple photos per product) ---------------------------
+
+export type ProductImage = { id: number; image_key: string; sort: number };
+
+/** All photos for a product, cover first. */
+export async function getProductImages(productId: number): Promise<ProductImage[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const res = await db
+      .prepare(
+        "SELECT id, image_key, sort FROM product_images WHERE product_id = ? ORDER BY sort ASC, id ASC",
+      )
+      .bind(productId)
+      .all<ProductImage>();
+    return res.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Add a photo to a product. The first photo also becomes the cover
+ * (products.image_key) so existing tiles keep working. Returns the new row id. */
+export async function addProductImage(productId: number, key: string): Promise<number | null> {
+  const db = getDb();
+  if (!db) return null;
+  const row = await db
+    .prepare("SELECT COALESCE(MAX(sort), -1) AS max_sort FROM product_images WHERE product_id = ?")
+    .bind(productId)
+    .first<{ max_sort: number }>();
+  const res = await db
+    .prepare("INSERT INTO product_images (product_id, image_key, sort) VALUES (?, ?, ?)")
+    .bind(productId, key, (row?.max_sort ?? -1) + 1)
+    .run();
+  // Ensure the product has a cover.
+  const cover = await db
+    .prepare("SELECT image_key FROM products WHERE id = ?")
+    .bind(productId)
+    .first<{ image_key: string | null }>();
+  if (!cover?.image_key) {
+    await setProductImageKey(productId, key);
+  }
+  return Number(res.meta?.last_row_id ?? 0) || null;
+}
+
+/** Remove one product photo. If it was the cover, promote the next remaining
+ * photo (or clear the cover when none are left). */
+export async function deleteProductImage(imageId: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const img = await db
+    .prepare("SELECT id, product_id, image_key FROM product_images WHERE id = ?")
+    .bind(imageId)
+    .first<{ id: number; product_id: number; image_key: string }>();
+  if (!img) return;
+  await db.prepare("DELETE FROM product_images WHERE id = ?").bind(imageId).run();
+  const product = await db
+    .prepare("SELECT image_key FROM products WHERE id = ?")
+    .bind(img.product_id)
+    .first<{ image_key: string | null }>();
+  if (product?.image_key === img.image_key) {
+    const next = await db
+      .prepare(
+        "SELECT image_key FROM product_images WHERE product_id = ? ORDER BY sort ASC, id ASC LIMIT 1",
+      )
+      .bind(img.product_id)
+      .first<{ image_key: string }>();
+    await setProductImageKey(img.product_id, next?.image_key ?? null);
+  }
+}
+
+export async function getProductImageById(imageId: number): Promise<{
+  id: number;
+  product_id: number;
+  image_key: string;
+} | null> {
+  const db = getDb();
+  if (!db) return null;
+  const row = await db
+    .prepare("SELECT id, product_id, image_key FROM product_images WHERE id = ?")
+    .bind(imageId)
+    .first<{ id: number; product_id: number; image_key: string }>();
+  return row ?? null;
 }
 
 /** Swap a product's sort value with its neighbour in the given direction. */

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  adminClearProductMedia,
+  adminClearProductVideo,
   adminDeleteProduct,
+  adminDeleteProductImage,
+  adminListProductImages,
   adminListProducts,
   adminMoveProduct,
   adminSaveProduct,
@@ -11,8 +13,10 @@ import {
 import { formatAud, type Product } from "../../lib/types";
 
 // Admin products tab: list, create, edit, hide/show, reorder, delete with
-// confirm, and a media panel (photo + short video clip) both inside the edit
-// form and on each product row. Media uploads go to R2 via /api/admin/upload.
+// confirm, and a media panel — MULTIPLE photos plus one short video clip —
+// both inside the edit form and on each product row. The first photo is the
+// cover used on the collection tiles; the full set shows on the order page.
+// Media uploads go to R2 via /api/admin/upload.
 
 type Draft = {
   id?: number;
@@ -25,9 +29,10 @@ type Draft = {
   sort: string;
   visible: boolean;
   category: string;
-  image_key: string | null;
   video_key: string | null;
 };
+
+type ProductImage = { id: number; image_key: string; sort: number };
 
 const EMPTY_DRAFT: Draft = {
   slug: "",
@@ -39,7 +44,6 @@ const EMPTY_DRAFT: Draft = {
   sort: "0",
   visible: true,
   category: "wedding",
-  image_key: null,
   video_key: null,
 };
 
@@ -60,7 +64,6 @@ function draftFromProduct(p: Product): Draft {
     sort: String(p.sort),
     visible: p.visible === 1,
     category: p.category === "art" ? "art" : "wedding",
-    image_key: p.image_key,
     video_key: p.video_key,
   };
 }
@@ -69,6 +72,7 @@ export function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [saveError, setSaveError] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<{ id: number; kind: "image" | "video" } | null>(null);
@@ -78,11 +82,10 @@ export function ProductsTab() {
     try {
       const res = await adminListProducts();
       setProducts(res.products);
-      // Keep an open edit draft's media previews in sync with the DB.
       setDraft((d) => {
         if (!d?.id) return d;
         const p = res.products.find((x) => x.id === d.id);
-        return p ? { ...d, image_key: p.image_key, video_key: p.video_key } : d;
+        return p ? { ...d, video_key: p.video_key } : d;
       });
     } finally {
       setLoading(false);
@@ -92,6 +95,20 @@ export function ProductsTab() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const loadImages = useCallback(async (productId: number) => {
+    const res = await adminListProductImages({ data: { id: productId } });
+    setImages(res.images);
+  }, []);
+
+  // Load the edited product's photos whenever the open draft changes.
+  useEffect(() => {
+    if (draft?.id) {
+      void loadImages(draft.id);
+    } else {
+      setImages([]);
+    }
+  }, [draft?.id, loadImages]);
 
   async function save() {
     if (!draft) return;
@@ -152,33 +169,60 @@ export function ProductsTab() {
     await refresh();
   }
 
-  async function uploadMedia(id: number, kind: "image" | "video", file: File) {
+  // Upload one file (photo appends to the set; video replaces the single clip).
+  async function uploadOne(id: number, kind: "image" | "video", file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("target", kind === "video" ? "product_video" : "product");
+    form.append("product_id", String(id));
+    const res = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const json = (await res.json()) as { ok: boolean; error?: string };
+    if (!json.ok) throw new Error(json.error ?? "Upload failed.");
+  }
+
+  // Upload one or more photos (multi-select allowed), sequentially.
+  async function uploadPhotos(id: number, files: FileList) {
     setUploadError("");
-    setUploading({ id, kind });
+    setUploading({ id, kind: "image" });
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("target", kind === "video" ? "product_video" : "product");
-      form.append("product_id", String(id));
-      const res = await fetch("/api/admin/upload", { method: "POST", body: form });
-      const json = (await res.json()) as { ok: boolean; error?: string };
-      if (!json.ok) setUploadError(json.error ?? "Upload failed.");
+      for (const file of Array.from(files)) {
+        await uploadOne(id, "image", file);
+      }
       await refresh();
-    } catch {
-      setUploadError("Upload failed. Please try again.");
+      await loadImages(id);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+      await loadImages(id).catch(() => {});
     } finally {
       setUploading(null);
     }
   }
 
-  async function clearMedia(id: number, kind: "image" | "video") {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(`Remove this ${kind === "video" ? "video" : "photo"} from the product?`)
-    ) {
+  async function uploadVideo(id: number, file: File) {
+    setUploadError("");
+    setUploading({ id, kind: "video" });
+    try {
+      await uploadOne(id, "video", file);
+      await refresh();
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function deleteImage(imageId: number) {
+    if (typeof window !== "undefined" && !window.confirm("Remove this photo?")) return;
+    await adminDeleteProductImage({ data: { imageId } });
+    if (draft?.id) await loadImages(draft.id);
+    await refresh();
+  }
+
+  async function clearVideo(id: number) {
+    if (typeof window !== "undefined" && !window.confirm("Remove this video from the product?")) {
       return;
     }
-    await adminClearProductMedia({ data: { id, kind } });
+    await adminClearProductVideo({ data: { id } });
     await refresh();
   }
 
@@ -307,26 +351,76 @@ export function ProductsTab() {
             </label>
           </div>
 
-          {/* Photo + video for this product */}
+          {/* Photos + video for this product */}
           <div className="mt-5 border-t border-ink/10 pt-4">
             <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/60">
-              Photo &amp; video
+              Photos &amp; video
             </p>
             {draft.id ? (
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div className="mt-3 space-y-4">
+                {/* Multiple photos */}
+                <div>
+                  <p className="font-body text-xs font-medium text-ink/70">
+                    Photos ({images.length}) — the first is the cover on the collection
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {images.map((img, idx) => (
+                      <div
+                        key={img.id}
+                        className="group relative overflow-hidden rounded-sm border border-ink/15 bg-panel"
+                      >
+                        <img
+                          src={`/img/${img.image_key}`}
+                          alt={`Photo ${idx + 1}`}
+                          className="aspect-square w-full object-cover"
+                        />
+                        {idx === 0 ? (
+                          <span className="absolute left-1 top-1 rounded-sm bg-ink/80 px-1.5 py-0.5 font-body text-[0.6rem] uppercase tracking-wide text-beige">
+                            Cover
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => deleteImage(img.id)}
+                          className="absolute right-1 top-1 rounded-sm bg-[#8a2f2f] px-1.5 py-0.5 font-body text-[0.6rem] font-semibold text-white"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <label
+                      className={`flex aspect-square cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed border-ink/30 bg-panel/40 text-center font-body text-xs text-ink/60 ${
+                        uploading?.id === draft.id && uploading.kind === "image" ? "opacity-60" : ""
+                      }`}
+                    >
+                      {uploading?.id === draft.id && uploading.kind === "image"
+                        ? "Uploading..."
+                        : "+ Add photos"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="sr-only"
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files && files.length) void uploadPhotos(draft.id!, files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="mt-1 font-body text-[0.7rem] text-ink/50">
+                    You can select several photos at once. Remove any photo above; removing the
+                    cover promotes the next one.
+                  </p>
+                </div>
+
+                {/* Single video */}
                 <MediaBox
-                  kind="image"
-                  keyValue={draft.image_key}
-                  uploading={uploading?.id === draft.id && uploading.kind === "image"}
-                  onPick={(f) => uploadMedia(draft.id!, "image", f)}
-                  onClear={() => clearMedia(draft.id!, "image")}
-                />
-                <MediaBox
-                  kind="video"
                   keyValue={draft.video_key}
                   uploading={uploading?.id === draft.id && uploading.kind === "video"}
-                  onPick={(f) => uploadMedia(draft.id!, "video", f)}
-                  onClear={() => clearMedia(draft.id!, "video")}
+                  onPick={(f) => uploadVideo(draft.id!, f)}
+                  onClear={() => clearVideo(draft.id!)}
                 />
               </div>
             ) : (
@@ -431,16 +525,15 @@ export function ProductsTab() {
               <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
                 {uploading?.id === p.id && uploading.kind === "image"
                   ? "Uploading..."
-                  : p.image_key
-                    ? "Replace photo"
-                    : "Photo"}
+                  : "Add photos"}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  multiple
                   className="sr-only"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadMedia(p.id, "image", f);
+                    const files = e.target.files;
+                    if (files && files.length) void uploadPhotos(p.id, files);
                     e.target.value = "";
                   }}
                 />
@@ -457,7 +550,7 @@ export function ProductsTab() {
                   className="sr-only"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) void uploadMedia(p.id, "video", f);
+                    if (f) void uploadVideo(p.id, f);
                     e.target.value = "";
                   }}
                 />
@@ -484,63 +577,46 @@ export function ProductsTab() {
         ))}
       </ul>
       <p className="mt-3 font-body text-xs text-ink/50">
-        Photos: JPEG, PNG or WebP up to 5MB (portrait 4:5 looks best). Video: MP4, WebM or MOV up to
-        50MB, kept short (a few seconds). When a video is set it plays in the collection; otherwise
-        the photo shows.
+        Photos: JPEG, PNG or WebP up to 5MB each — add as many as you like (the first is the cover;
+        the rest show on the order page). Video: MP4, WebM or MOV up to 50MB, kept short. When a
+        video is set it plays on the collection tile; otherwise the cover photo shows.
       </p>
     </div>
   );
 }
 
-// One media slot (photo or video) inside the edit form: preview + upload +
-// remove.
+// The single video slot: preview + upload + remove.
 function MediaBox({
-  kind,
   keyValue,
   uploading,
   onPick,
   onClear,
 }: {
-  kind: "image" | "video";
   keyValue: string | null;
   uploading: boolean;
   onPick: (file: File) => void;
   onClear: () => void;
 }) {
-  const label = kind === "video" ? "Video clip" : "Photo";
-  const accept =
-    kind === "video" ? "video/mp4,video/webm,video/quicktime" : "image/jpeg,image/png,image/webp";
+  const accept = "video/mp4,video/webm,video/quicktime";
   return (
     <div className="rounded-sm border border-ink/15 bg-panel/40 p-3">
-      <p className="font-body text-xs font-medium text-ink/70">{label}</p>
+      <p className="font-body text-xs font-medium text-ink/70">Video clip</p>
       <div className="mt-2 flex h-40 items-center justify-center overflow-hidden rounded-sm bg-panel">
         {keyValue ? (
-          kind === "video" ? (
-            <video
-              src={`/img/${keyValue}`}
-              className="h-full w-full object-cover"
-              controls
-              muted
-              playsInline
-            />
-          ) : (
-            <img
-              src={`/img/${keyValue}`}
-              alt={`${label} preview`}
-              className="h-full w-full object-cover"
-            />
-          )
+          <video
+            src={`/img/${keyValue}`}
+            className="h-full w-full object-cover"
+            controls
+            muted
+            playsInline
+          />
         ) : (
           <span className="font-body text-xs uppercase tracking-wide text-ink/40">Not set</span>
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <label className={`${btn} cursor-pointer bg-ink text-beige`}>
-          {uploading
-            ? "Uploading..."
-            : keyValue
-              ? `Replace ${label.toLowerCase()}`
-              : `Upload ${label.toLowerCase()}`}
+          {uploading ? "Uploading..." : keyValue ? "Replace video" : "Upload video"}
           <input
             type="file"
             accept={accept}

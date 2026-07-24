@@ -30,8 +30,9 @@ import {
   setFaqVisible,
   setGalleryCaption,
   setGalleryVisible,
+  deleteProductImage,
+  getProductImages,
   setOrderStatus,
-  setProductImageKey,
   setProductVideoKey,
   setProductVisible,
   setSetting,
@@ -119,19 +120,30 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Remove a product's photo or video (the R2 object is left in place; only the
+/** Remove a product's video (the R2 object is left in place; only the
  * reference is cleared so the public site stops showing it). */
-export const adminClearProductMedia = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
-    z.object({ id: z.number().int(), kind: z.enum(["image", "video"]) }).parse(data),
-  )
+export const adminClearProductVideo = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
   .handler(async ({ data }) => {
     await requireAdmin();
-    if (data.kind === "video") {
-      await setProductVideoKey(data.id, null);
-    } else {
-      await setProductImageKey(data.id, null);
-    }
+    await setProductVideoKey(data.id, null);
+    return { ok: true as const };
+  });
+
+/** List all of a product's photos (cover first). */
+export const adminListProductImages = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    return { images: await getProductImages(data.id) };
+  });
+
+/** Remove one product photo by its image id. */
+export const adminDeleteProductImage = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ imageId: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await deleteProductImage(data.imageId);
     return { ok: true as const };
   });
 

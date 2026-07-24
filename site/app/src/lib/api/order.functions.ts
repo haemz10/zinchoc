@@ -7,6 +7,7 @@ import { createCheckoutSession, stripeEnabled } from "../stripe.server";
 import {
   getDb,
   getOrderByReference,
+  getProductImages,
   getSettings,
   getVisibleProductBySlug,
   getVisibleProducts,
@@ -52,10 +53,15 @@ export const getOrderPageData = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const [settings, products] = await Promise.all([getSettings(), getVisibleProducts()]);
     const product = data.piece ? await getVisibleProductBySlug(data.piece) : null;
+    // All photos for the chosen piece (cover first) for the order-page gallery.
+    const productImages = product
+      ? (await getProductImages(product.id)).map((i) => i.image_key)
+      : [];
     return {
       settings,
       products,
       product,
+      productImages,
       origin: requestOrigin(),
       dbReady: Boolean(getDb()),
       faqVisible: settings.faq_public === "1" || (await isAdminSession()),

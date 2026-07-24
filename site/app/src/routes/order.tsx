@@ -51,6 +51,7 @@ function OrderPage() {
     settings,
     products,
     product,
+    productImages,
     origin,
     dbReady,
     faqVisible,
@@ -66,6 +67,7 @@ function OrderPage() {
           {product ? (
             <OrderFlow
               product={product}
+              productImages={productImages}
               settings={settings}
               origin={origin}
               dbReady={dbReady}
@@ -135,14 +137,54 @@ function PieceChooser({ products }: { products: Product[] }) {
   );
 }
 
+// Product photo gallery for the order page: a large active image with a
+// thumbnail strip when there is more than one. Client-only interactivity.
+function ProductGallery({ images, name }: { images: string[]; name: string }) {
+  const [active, setActive] = useState(0);
+  const current = images[Math.min(active, images.length - 1)];
+  return (
+    <div className="mb-6">
+      <img
+        src={`/img/${current}`}
+        alt={`${name}, a Zin Choc piece`}
+        className="aspect-[4/5] w-full rounded-sm object-cover"
+      />
+      {images.length > 1 ? (
+        <div className="mt-3 grid grid-cols-5 gap-2">
+          {images.map((key, i) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show photo ${i + 1} of ${images.length}`}
+              className={`overflow-hidden rounded-sm border ${
+                i === active ? "border-gold" : "border-transparent"
+              }`}
+            >
+              <img
+                src={`/img/${key}`}
+                alt=""
+                className="aspect-square w-full object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function OrderFlow({
   product,
+  productImages,
   settings,
   origin,
   dbReady,
   stripeEnabled,
 }: {
   product: Product;
+  productImages: string[];
   settings: Settings;
   origin: string;
   dbReady: boolean;
@@ -164,6 +206,7 @@ function OrderFlow({
   return (
     <OrderForm
       product={product}
+      productImages={productImages}
       dbReady={dbReady}
       notesHint={settings.order_notes_hint}
       leadTime={settings.lead_time_text}
@@ -174,12 +217,14 @@ function OrderFlow({
 
 function OrderForm({
   product,
+  productImages,
   dbReady,
   notesHint,
   leadTime,
   onPlaced,
 }: {
   product: Product;
+  productImages: string[];
   dbReady: boolean;
   notesHint: string;
   leadTime: string;
@@ -258,6 +303,9 @@ function OrderForm({
     <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
       {/* Product summary */}
       <aside>
+        {productImages.length > 0 ? (
+          <ProductGallery images={productImages} name={product.name} />
+        ) : null}
         <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your order</p>
         <h1 className="mt-3 font-display text-3xl leading-tight text-ink md:text-4xl">
           {product.name}
