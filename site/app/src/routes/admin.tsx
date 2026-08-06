@@ -23,10 +23,7 @@ export const Route = createFileRoute("/admin")({
   }),
   loader: async () => getAdminState(),
   head: () => ({
-    meta: [
-      { title: "Admin | Zin Choc" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "Admin | Zin Choc" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminPage,
 });
@@ -116,8 +113,8 @@ function AdminPage() {
     >
       {!dbReady ? (
         <p className="mt-6 rounded-sm border border-gold/40 bg-gold/10 px-4 py-3 font-body text-sm text-ink">
-          The database is not provisioned yet, so products, enquiries and settings cannot be
-          edited. Deploy the site once and reload.
+          The database is not provisioned yet, so products, enquiries and settings cannot be edited.
+          Deploy the site once and reload.
         </p>
       ) : null}
 
@@ -152,13 +149,7 @@ function AdminPage() {
   );
 }
 
-function AdminShell({
-  children,
-  right,
-}: {
-  children: React.ReactNode;
-  right?: React.ReactNode;
-}) {
+function AdminShell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-beige">
       <header className="border-b border-ink/15 bg-white">

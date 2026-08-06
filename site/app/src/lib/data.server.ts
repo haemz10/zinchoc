@@ -32,6 +32,7 @@ type ProductRow = {
   unit: string;
   min_order: number;
   image_key: string | null;
+  video_key: string | null;
   sort: number;
   visible: number;
   category: string;
@@ -47,6 +48,7 @@ function rowToProduct(r: ProductRow): Product {
     unit: r.unit,
     min_order: r.min_order,
     image_key: r.image_key,
+    video_key: r.video_key ?? null,
     sort: r.sort,
     visible: r.visible,
     category: r.category ?? "wedding",
@@ -61,7 +63,7 @@ export async function getVisibleProducts(): Promise<Product[]> {
   try {
     const res = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
       )
       .all<ProductRow>();
     const rows = res.results ?? [];
@@ -77,7 +79,7 @@ export async function getAllProducts(): Promise<Product[]> {
   if (!db) return [];
   const res = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products ORDER BY sort ASC, id ASC",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products ORDER BY sort ASC, id ASC",
     )
     .all<ProductRow>();
   return (res.results ?? []).map(rowToProduct);
@@ -88,7 +90,7 @@ export async function getProductById(id: number): Promise<Product | null> {
   if (!db) return null;
   const row = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE id = ?",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE id = ?",
     )
     .bind(id)
     .first<ProductRow>();
@@ -114,19 +116,45 @@ export async function getSettings(): Promise<Settings> {
       hero_image_key: pick("hero_image_key"),
       story_image_key: pick("story_image_key"),
       logo_image_key: pick("logo_image_key"),
+      og_image_key: pick("og_image_key"),
       faq_public: pick("faq_public"),
+      hero_kicker: pick("hero_kicker"),
       hero_headline: pick("hero_headline"),
       hero_subline: pick("hero_subline"),
       story_heading: pick("story_heading"),
       story_body: pick("story_body"),
+      story_closing_line: pick("story_closing_line"),
+      collection_kicker: pick("collection_kicker"),
+      collection_heading: pick("collection_heading"),
+      collection_wedding_label: pick("collection_wedding_label"),
+      collection_art_label: pick("collection_art_label"),
+      commission_heading: pick("commission_heading"),
+      commission_body: pick("commission_body"),
+      enquiry_kicker: pick("enquiry_kicker"),
+      enquiry_heading: pick("enquiry_heading"),
+      enquiry_intro: pick("enquiry_intro"),
+      closing_heading: pick("closing_heading"),
       closing_line_1: pick("closing_line_1"),
       collection_intro: pick("collection_intro"),
       order_notes_hint: pick("order_notes_hint"),
+      process_heading: pick("process_heading"),
+      process_intro: pick("process_intro"),
+      process_steps: pick("process_steps"),
+      gallery_empty_text: pick("gallery_empty_text"),
+      lead_time_text: pick("lead_time_text"),
+      footer_blurb: pick("footer_blurb"),
+      show_page_privacy: pick("show_page_privacy"),
+      show_page_terms: pick("show_page_terms"),
+      show_page_shipping: pick("show_page_shipping"),
       color_ground: pick("color_ground"),
       color_panel: pick("color_panel"),
       color_ink: pick("color_ink"),
       color_gold: pick("color_gold"),
       color_silver: pick("color_silver"),
+      edge_frame_enabled: pick("edge_frame_enabled"),
+      edge_frame_color: pick("edge_frame_color"),
+      edge_frame_thickness: pick("edge_frame_thickness"),
+      edge_frame_inset: pick("edge_frame_inset"),
       show_story: pick("show_story"),
       show_process: pick("show_process"),
       show_gallery: pick("show_gallery"),
@@ -244,7 +272,10 @@ export async function updateProduct(id: number, input: ProductInput): Promise<vo
 export async function deleteProduct(id: number): Promise<void> {
   const db = getDb();
   if (!db) return;
-  await db.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
+  await db.batch([
+    db.prepare("DELETE FROM product_images WHERE product_id = ?").bind(id),
+    db.prepare("DELETE FROM products WHERE id = ?").bind(id),
+  ]);
 }
 
 export async function setProductVisible(id: number, visible: number): Promise<void> {
@@ -256,13 +287,107 @@ export async function setProductVisible(id: number, visible: number): Promise<vo
     .run();
 }
 
-export async function setProductImageKey(id: number, key: string): Promise<void> {
+export async function setProductImageKey(id: number, key: string | null): Promise<void> {
   const db = getDb();
   if (!db) return;
   await db
     .prepare("UPDATE products SET image_key = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(key, id)
     .run();
+}
+
+export async function setProductVideoKey(id: number, key: string | null): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .prepare("UPDATE products SET video_key = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(key, id)
+    .run();
+}
+
+// ---- Product images (multiple photos per product) ---------------------------
+
+export type ProductImage = { id: number; image_key: string; sort: number };
+
+/** All photos for a product, cover first. */
+export async function getProductImages(productId: number): Promise<ProductImage[]> {
+  const db = getDb();
+  if (!db) return [];
+  try {
+    const res = await db
+      .prepare(
+        "SELECT id, image_key, sort FROM product_images WHERE product_id = ? ORDER BY sort ASC, id ASC",
+      )
+      .bind(productId)
+      .all<ProductImage>();
+    return res.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Add a photo to a product. The first photo also becomes the cover
+ * (products.image_key) so existing tiles keep working. Returns the new row id. */
+export async function addProductImage(productId: number, key: string): Promise<number | null> {
+  const db = getDb();
+  if (!db) return null;
+  const row = await db
+    .prepare("SELECT COALESCE(MAX(sort), -1) AS max_sort FROM product_images WHERE product_id = ?")
+    .bind(productId)
+    .first<{ max_sort: number }>();
+  const res = await db
+    .prepare("INSERT INTO product_images (product_id, image_key, sort) VALUES (?, ?, ?)")
+    .bind(productId, key, (row?.max_sort ?? -1) + 1)
+    .run();
+  // Ensure the product has a cover.
+  const cover = await db
+    .prepare("SELECT image_key FROM products WHERE id = ?")
+    .bind(productId)
+    .first<{ image_key: string | null }>();
+  if (!cover?.image_key) {
+    await setProductImageKey(productId, key);
+  }
+  return Number(res.meta?.last_row_id ?? 0) || null;
+}
+
+/** Remove one product photo. If it was the cover, promote the next remaining
+ * photo (or clear the cover when none are left). */
+export async function deleteProductImage(imageId: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const img = await db
+    .prepare("SELECT id, product_id, image_key FROM product_images WHERE id = ?")
+    .bind(imageId)
+    .first<{ id: number; product_id: number; image_key: string }>();
+  if (!img) return;
+  await db.prepare("DELETE FROM product_images WHERE id = ?").bind(imageId).run();
+  const product = await db
+    .prepare("SELECT image_key FROM products WHERE id = ?")
+    .bind(img.product_id)
+    .first<{ image_key: string | null }>();
+  if (product?.image_key === img.image_key) {
+    const next = await db
+      .prepare(
+        "SELECT image_key FROM product_images WHERE product_id = ? ORDER BY sort ASC, id ASC LIMIT 1",
+      )
+      .bind(img.product_id)
+      .first<{ image_key: string }>();
+    await setProductImageKey(img.product_id, next?.image_key ?? null);
+  }
+}
+
+export async function getProductImageById(imageId: number): Promise<{
+  id: number;
+  product_id: number;
+  image_key: string;
+} | null> {
+  const db = getDb();
+  if (!db) return null;
+  const row = await db
+    .prepare("SELECT id, product_id, image_key FROM product_images WHERE id = ?")
+    .bind(imageId)
+    .first<{ id: number; product_id: number; image_key: string }>();
+  return row ?? null;
 }
 
 /** Swap a product's sort value with its neighbour in the given direction. */
@@ -307,7 +432,7 @@ export async function getVisibleProductBySlug(slug: string): Promise<Product | n
   try {
     const row = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, sort, visible, category FROM products WHERE slug = ? AND visible = 1",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE slug = ? AND visible = 1",
       )
       .bind(slug)
       .first<ProductRow>();
@@ -398,6 +523,36 @@ export async function setOrderStatus(id: number, status: string): Promise<void> 
     .run();
 }
 
+/** Record the one-time payment reminder. Only flips when no reminder has been
+ * recorded yet; returns false if it was already sent (the once-only rule is
+ * enforced here, not in the UI). */
+export async function markOrderReminded(id: number): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const res = await db
+    .prepare(
+      "UPDATE orders SET reminder_sent_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND reminder_sent_at IS NULL",
+    )
+    .bind(id)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+/** Soft delete / restore. Deleted orders keep their row (deleted_at set) so
+ * the admin can always undo. */
+export async function setOrderDeleted(id: number, deleted: boolean): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .prepare(
+      deleted
+        ? "UPDATE orders SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"
+        : "UPDATE orders SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(id)
+    .run();
+}
+
 // ---- Gallery ----------------------------------------------------------------
 
 export async function getVisibleGalleryImages(): Promise<GalleryImage[]> {
@@ -406,7 +561,7 @@ export async function getVisibleGalleryImages(): Promise<GalleryImage[]> {
   try {
     const res = await db
       .prepare(
-        "SELECT id, image_key, caption, sort, visible, created_at FROM gallery_images WHERE visible = 1 ORDER BY sort ASC, id ASC",
+        "SELECT id, image_key, video_key, caption, sort, visible, created_at FROM gallery_images WHERE visible = 1 ORDER BY sort ASC, id ASC",
       )
       .all<GalleryImage>();
     return res.results ?? [];
@@ -420,22 +575,37 @@ export async function getAllGalleryImages(): Promise<GalleryImage[]> {
   if (!db) return [];
   const res = await db
     .prepare(
-      "SELECT id, image_key, caption, sort, visible, created_at FROM gallery_images ORDER BY sort ASC, id ASC",
+      "SELECT id, image_key, video_key, caption, sort, visible, created_at FROM gallery_images ORDER BY sort ASC, id ASC",
     )
     .all<GalleryImage>();
   return res.results ?? [];
 }
 
-export async function insertGalleryImage(imageKey: string): Promise<void> {
+/** Insert a gallery item. An image item stores image_key; a video item stores
+ * video_key (image_key null). Returns the new row id so an upload can, if it
+ * wants, immediately attach the other kind of media. */
+export async function insertGalleryItem(
+  kind: "image" | "video",
+  key: string,
+): Promise<number | null> {
   const db = getDb();
-  if (!db) return;
+  if (!db) return null;
   const row = await db
     .prepare("SELECT COALESCE(MAX(sort), 0) AS max_sort FROM gallery_images")
     .first<{ max_sort: number }>();
-  await db
-    .prepare("INSERT INTO gallery_images (image_key, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))")
-    .bind(imageKey, (row?.max_sort ?? 0) + 1)
+  const col = kind === "video" ? "video_key" : "image_key";
+  const res = await db
+    .prepare(
+      `INSERT INTO gallery_images (${col}, sort, visible, created_at) VALUES (?, ?, 1, datetime('now'))`,
+    )
+    .bind(key, (row?.max_sort ?? 0) + 1)
     .run();
+  return Number(res.meta?.last_row_id ?? 0) || null;
+}
+
+/** Back-compat: insert an image-only gallery item. */
+export async function insertGalleryImage(imageKey: string): Promise<void> {
+  await insertGalleryItem("image", imageKey);
 }
 
 export async function setGalleryCaption(id: number, caption: string): Promise<void> {
@@ -599,7 +769,9 @@ export async function updateLegalPage(slug: string, title: string, body: string)
   const db = getDb();
   if (!db) return;
   await db
-    .prepare("UPDATE legal_pages SET title = ?, body = ?, updated_at = datetime('now') WHERE slug = ?")
+    .prepare(
+      "UPDATE legal_pages SET title = ?, body = ?, updated_at = datetime('now') WHERE slug = ?",
+    )
     .bind(title, body, slug)
     .run();
 }

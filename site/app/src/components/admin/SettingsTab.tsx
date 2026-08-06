@@ -7,8 +7,10 @@ import {
   adminGetSettings,
   adminResetColors,
   adminSaveColors,
+  adminSaveEdgeFrame,
   adminSaveSettings,
   adminSetStripeKey,
+  adminTestStripe,
 } from "../../lib/api/admin.functions";
 import { BRAND_COLOR_KEYS, HEX_COLOR_RE, type Settings } from "../../lib/types";
 
@@ -21,7 +23,7 @@ const field =
 const btn =
   "inline-flex items-center rounded-sm px-3 py-1.5 font-body text-xs font-medium transition-transform active:scale-[0.98]";
 
-type SlotId = "hero" | "story" | "logo";
+type SlotId = "hero" | "story" | "logo" | "og";
 
 const SLOTS: { id: SlotId; label: string; hint: string }[] = [
   {
@@ -37,7 +39,12 @@ const SLOTS: { id: SlotId; label: string; hint: string }[] = [
   {
     id: "logo",
     label: "Brand logo",
-    hint: "Your heart-and-eye mark. PNG with transparent or white background, used in the header and footer exactly as uploaded.",
+    hint: "Your heart-and-eye mark. PNG with transparent or white background. Used in the header, footer, the large hero watermark, and everywhere a photo has not been uploaded yet.",
+  },
+  {
+    id: "og",
+    label: "Social share image",
+    hint: "Shown as the preview card when the site is shared on social media or chat apps. Landscape 1200 x 630. Until uploaded, the built-in branded cover is used.",
   },
 ];
 
@@ -60,6 +67,8 @@ export function SettingsTab() {
   const [stripeMessage, setStripeMessage] = useState("");
   const [colorsBusy, setColorsBusy] = useState(false);
   const [colorsMessage, setColorsMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [frameBusy, setFrameBusy] = useState(false);
+  const [frameMessage, setFrameMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   // All hooks are declared above this line; the loading return below must stay
   // after the last hook (Rules of Hooks).
@@ -105,13 +114,34 @@ export function SettingsTab() {
             settings.show_collection_wedding === "0" ? ("0" as const) : ("1" as const),
           show_collection_art:
             settings.show_collection_art === "0" ? ("0" as const) : ("1" as const),
+          hero_kicker: settings.hero_kicker,
           hero_headline: settings.hero_headline,
           hero_subline: settings.hero_subline,
           story_heading: settings.story_heading,
           story_body: settings.story_body,
+          story_closing_line: settings.story_closing_line,
+          collection_kicker: settings.collection_kicker,
+          collection_heading: settings.collection_heading,
+          collection_wedding_label: settings.collection_wedding_label,
+          collection_art_label: settings.collection_art_label,
+          commission_heading: settings.commission_heading,
+          commission_body: settings.commission_body,
+          enquiry_kicker: settings.enquiry_kicker,
+          enquiry_heading: settings.enquiry_heading,
+          enquiry_intro: settings.enquiry_intro,
+          closing_heading: settings.closing_heading,
           closing_line_1: settings.closing_line_1,
           collection_intro: settings.collection_intro,
           order_notes_hint: settings.order_notes_hint,
+          process_heading: settings.process_heading,
+          process_intro: settings.process_intro,
+          process_steps: settings.process_steps,
+          gallery_empty_text: settings.gallery_empty_text,
+          lead_time_text: settings.lead_time_text,
+          footer_blurb: settings.footer_blurb,
+          show_page_privacy: settings.show_page_privacy === "0" ? ("0" as const) : ("1" as const),
+          show_page_terms: settings.show_page_terms === "0" ? ("0" as const) : ("1" as const),
+          show_page_shipping: settings.show_page_shipping === "0" ? ("0" as const) : ("1" as const),
           paypal_email: settings.paypal_email,
           bank_account_name: settings.bank_account_name,
           bank_bsb: settings.bank_bsb,
@@ -181,11 +211,43 @@ export function SettingsTab() {
     setStripeMessage("");
     try {
       const res = await adminSetStripeKey({ data: { key: stripeKeyInput.trim() } });
-      setStripeKeyInput("");
       setStripeMasked(res.masked);
-      setStripeMessage("Stripe key saved. Card payments are live.");
+      if (res.ok) {
+        setStripeKeyInput("");
+        setStripeMessage("Stripe accepted the key. It is saved and card payments are live.");
+      } else {
+        setStripeMessage(res.error);
+      }
     } catch {
       setStripeMessage("Could not save the key. Please try again.");
+    } finally {
+      setStripeBusy(false);
+    }
+  }
+
+  async function testStripe() {
+    setStripeBusy(true);
+    setStripeMessage("");
+    try {
+      const res = await adminTestStripe();
+      if (res.results.length === 0) {
+        setStripeMessage("No Stripe key is configured, so the card option is hidden at checkout.");
+      } else {
+        const lines = res.results.map((r) => {
+          const label = r.source === "settings" ? "Key saved in Settings" : "Deploy secret key";
+          return r.ok
+            ? `${label} (...${r.key_tail}): working.`
+            : `${label} (...${r.key_tail}): FAILED - ${r.failure?.message ?? "unknown error"}`;
+        });
+        lines.push(
+          res.card_active
+            ? "Direct card checkout is live for customers."
+            : "The direct card checkout button is hidden from customers until a test succeeds; the card payment link and PayPal remain available.",
+        );
+        setStripeMessage(lines.join(" "));
+      }
+    } catch {
+      setStripeMessage("Could not run the test. Please try again.");
     } finally {
       setStripeBusy(false);
     }
@@ -248,6 +310,36 @@ export function SettingsTab() {
       setColorsMessage({ ok: false, text: "Could not reset the colours. Please try again." });
     } finally {
       setColorsBusy(false);
+    }
+  }
+
+  async function saveEdgeFrame() {
+    if (!settings) return;
+    setFrameMessage(null);
+    if (!HEX_COLOR_RE.test(settings.edge_frame_color)) {
+      setFrameMessage({ ok: false, text: "The frame colour is not a valid hex value." });
+      return;
+    }
+    setFrameBusy(true);
+    try {
+      const res = await adminSaveEdgeFrame({
+        data: {
+          enabled: settings.edge_frame_enabled !== "0",
+          color: settings.edge_frame_color,
+          thickness: Number.parseFloat(settings.edge_frame_thickness) || 0,
+          inset: Number.parseFloat(settings.edge_frame_inset) || 0,
+        },
+      });
+      if (res.ok) {
+        setFrameMessage({ ok: true, text: "Frame saved. Reload any open page to see it." });
+        await refresh();
+      } else {
+        setFrameMessage({ ok: false, text: res.error });
+      }
+    } catch {
+      setFrameMessage({ ok: false, text: "Could not save the frame. Please try again." });
+    } finally {
+      setFrameBusy(false);
     }
   }
 
@@ -361,6 +453,9 @@ export function SettingsTab() {
             { key: "show_collection_wedding", label: "Collection: wedding pieces" },
             { key: "show_collection_art", label: "Collection: art bonbon boxes" },
             { key: "show_gallery", label: "Gallery page" },
+            { key: "show_page_privacy", label: "Information: Privacy Policy page" },
+            { key: "show_page_terms", label: "Information: Terms of Sale page" },
+            { key: "show_page_shipping", label: "Information: Shipping and Refunds page" },
           ] as const
         ).map((section) => (
           <label key={section.key} className="flex items-start gap-3">
@@ -375,6 +470,17 @@ export function SettingsTab() {
         ))}
 
         <h3 className="border-t border-ink/10 pt-4 font-display text-base text-ink">Site copy</h3>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Hero kicker (small line above the headline)
+          </span>
+          <input
+            type="text"
+            value={settings.hero_kicker}
+            onChange={(e) => set("hero_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
         <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">Hero headline</span>
           <input
@@ -414,6 +520,61 @@ export function SettingsTab() {
           />
         </label>
         <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Story closing line (italic line under the story; leave empty to hide)
+          </span>
+          <input
+            type="text"
+            value={settings.story_closing_line}
+            onChange={(e) => set("story_closing_line", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Collection section
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Collection kicker (small line above the heading)
+          </span>
+          <input
+            type="text"
+            value={settings.collection_kicker}
+            onChange={(e) => set("collection_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Collection heading</span>
+          <input
+            type="text"
+            value={settings.collection_heading}
+            onChange={(e) => set("collection_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="font-body text-xs font-medium text-ink/70">Wedding group label</span>
+            <input
+              type="text"
+              value={settings.collection_wedding_label}
+              onChange={(e) => set("collection_wedding_label", e.target.value)}
+              className={`mt-1 ${field}`}
+            />
+          </label>
+          <label className="block">
+            <span className="font-body text-xs font-medium text-ink/70">Art group label</span>
+            <input
+              type="text"
+              value={settings.collection_art_label}
+              onChange={(e) => set("collection_art_label", e.target.value)}
+              className={`mt-1 ${field}`}
+            />
+          </label>
+        </div>
+        <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">Collection introduction</span>
           <textarea
             rows={3}
@@ -424,7 +585,73 @@ export function SettingsTab() {
         </label>
         <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">
-            Closing line (under "Dates for the coming season are limited")
+            Commissions tile heading (the panel under the collection)
+          </span>
+          <input
+            type="text"
+            value={settings.commission_heading}
+            onChange={(e) => set("commission_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Commissions tile text</span>
+          <textarea
+            rows={3}
+            value={settings.commission_body}
+            onChange={(e) => set("commission_body", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Enquiry section
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Enquiry kicker (small line above the heading)
+          </span>
+          <input
+            type="text"
+            value={settings.enquiry_kicker}
+            onChange={(e) => set("enquiry_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Enquiry heading</span>
+          <input
+            type="text"
+            value={settings.enquiry_heading}
+            onChange={(e) => set("enquiry_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Enquiry introduction</span>
+          <textarea
+            rows={2}
+            value={settings.enquiry_intro}
+            onChange={(e) => set("enquiry_intro", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Closing banner
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Closing banner heading</span>
+          <input
+            type="text"
+            value={settings.closing_heading}
+            onChange={(e) => set("closing_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Closing line (under the closing banner heading)
           </span>
           <input
             type="text"
@@ -442,6 +669,71 @@ export function SettingsTab() {
             value={settings.order_notes_hint}
             onChange={(e) => set("order_notes_hint", e.target.value)}
             className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Order page lead time (shown next to "Lead time")
+          </span>
+          <input
+            type="text"
+            value={settings.lead_time_text}
+            onChange={(e) => set("lead_time_text", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            "How commissioning works" heading
+          </span>
+          <input
+            type="text"
+            value={settings.process_heading}
+            onChange={(e) => set("process_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            "How commissioning works" introduction
+          </span>
+          <input
+            type="text"
+            value={settings.process_intro}
+            onChange={(e) => set("process_intro", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Commissioning steps (each step: first line is the title, following lines the
+            description; leave a blank line between steps — numbering is automatic)
+          </span>
+          <textarea
+            rows={12}
+            value={settings.process_steps}
+            onChange={(e) => set("process_steps", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Gallery empty-state message (shown until photos are uploaded)
+          </span>
+          <textarea
+            rows={2}
+            value={settings.gallery_empty_text}
+            onChange={(e) => set("gallery_empty_text", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Footer introduction</span>
+          <textarea
+            rows={2}
+            value={settings.footer_blurb}
+            onChange={(e) => set("footer_blurb", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
           />
         </label>
 
@@ -502,8 +794,9 @@ export function SettingsTab() {
             className={`mt-1 ${field}`}
           />
           <span className="mt-1 block font-body text-xs text-ink/55">
-            The link is a fallback only; when a Stripe key is configured below (or as a deploy
-            secret), card payments run live through Stripe Checkout instead.
+            Shown at checkout as the card option whenever direct Stripe Checkout is not active.
+            Create a Payment Link in your Stripe dashboard (Products, then Payment Links) and paste
+            it here; the customer&apos;s order reference is attached to the payment automatically.
           </span>
         </label>
         <div className="rounded-sm border border-ink/10 bg-panel/50 p-4">
@@ -511,7 +804,7 @@ export function SettingsTab() {
           <p className="mt-1 font-body text-xs text-ink/55">
             {stripeMasked
               ? `Card payments are live via Stripe Checkout (key ${stripeMasked}).`
-              : "No key configured; the card option is hidden at checkout. Paste a restricted Stripe secret key to activate card payments."}
+              : "No key configured, so the direct Stripe Checkout option is hidden. Customers can still pay by card through PayPal guest checkout or the card payment link above. Use Test card payments to check whether direct Stripe Checkout can run on this hosting."}
           </p>
           <input
             type="password"
@@ -531,6 +824,15 @@ export function SettingsTab() {
             >
               {stripeBusy ? "Working..." : "Save key"}
             </button>
+            <button
+              type="button"
+              onClick={testStripe}
+              disabled={stripeBusy}
+              className={`${btn} border border-ink/25 text-ink disabled:opacity-50`}
+              title="Creates and immediately cancels a $1 test checkout session. Nothing is charged."
+            >
+              Test card payments
+            </button>
             {stripeMasked ? (
               <button
                 type="button"
@@ -541,10 +843,10 @@ export function SettingsTab() {
                 Clear key
               </button>
             ) : null}
-            {stripeMessage ? (
-              <span className="font-body text-xs text-ink/60">{stripeMessage}</span>
-            ) : null}
           </div>
+          {stripeMessage ? (
+            <p className="mt-2 font-body text-xs leading-relaxed text-ink/70">{stripeMessage}</p>
+          ) : null}
         </div>
         <div className="flex items-center gap-3 pt-1">
           <button
@@ -571,7 +873,9 @@ export function SettingsTab() {
               ? settings.hero_image_key
               : slot.id === "story"
                 ? settings.story_image_key
-                : settings.logo_image_key;
+                : slot.id === "og"
+                  ? settings.og_image_key
+                  : settings.logo_image_key;
           return (
             <div key={slot.id} className="rounded-sm border border-ink/15 bg-white p-4">
               <p className="font-body text-sm font-semibold text-ink">{slot.label}</p>
@@ -681,6 +985,118 @@ export function SettingsTab() {
             className={`${btn} border border-ink/25 text-ink disabled:opacity-60`}
           >
             Reset to defaults
+          </button>
+        </div>
+
+        <div className="mt-6 border-t border-ink/10 pt-5">
+          <p className="font-body text-sm font-semibold text-ink">Silver edge frame</p>
+          <p className="mt-1 font-body text-xs leading-relaxed text-ink/60">
+            A thin line that traces all four edges of the screen, like a fine thread framing the
+            page. It sits above the page and never affects the layout.
+          </p>
+          {frameMessage ? (
+            <p
+              className={`mt-2 font-body text-xs ${frameMessage.ok ? "text-ink/70" : "text-[#8a2f2f]"}`}
+            >
+              {frameMessage.text}
+            </p>
+          ) : null}
+
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={settings.edge_frame_enabled !== "0"}
+              onChange={(e) => set("edge_frame_enabled", e.target.checked ? "1" : "0")}
+              className="mt-1 h-4 w-4 shrink-0 accent-gold"
+            />
+            <span className="font-body text-sm leading-relaxed text-ink/80">
+              Show the silver frame on every page
+            </span>
+          </label>
+
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="color"
+              value={toColorInput(settings.edge_frame_color)}
+              onChange={(e) => set("edge_frame_color", e.target.value)}
+              aria-label="Frame colour picker"
+              className="h-9 w-12 shrink-0 cursor-pointer rounded-sm border border-ink/25 bg-white p-0.5"
+            />
+            <input
+              type="text"
+              value={settings.edge_frame_color}
+              onChange={(e) => set("edge_frame_color", e.target.value)}
+              aria-label="Frame colour hex value"
+              className={`w-28 rounded-sm border px-2 py-1.5 font-mono text-xs text-ink focus:outline-none ${
+                HEX_COLOR_RE.test(settings.edge_frame_color)
+                  ? "border-ink/25 bg-white focus:border-gold"
+                  : "border-[#8a2f2f]/60 bg-[#8a2f2f]/5"
+              }`}
+            />
+            <span className="font-body text-sm text-ink/75">Frame colour</span>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="flex items-baseline justify-between font-body text-xs font-medium text-ink/70">
+              <span>Thickness</span>
+              <span className="font-mono text-ink/55">{settings.edge_frame_thickness}px</span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="8"
+              step="0.5"
+              value={settings.edge_frame_thickness}
+              onChange={(e) => set("edge_frame_thickness", e.target.value)}
+              className="mt-1 w-full accent-gold"
+            />
+          </label>
+
+          <label className="mt-3 block">
+            <span className="flex items-baseline justify-between font-body text-xs font-medium text-ink/70">
+              <span>Gap from the edge</span>
+              <span className="font-mono text-ink/55">{settings.edge_frame_inset}px</span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="40"
+              step="1"
+              value={settings.edge_frame_inset}
+              onChange={(e) => set("edge_frame_inset", e.target.value)}
+              className="mt-1 w-full accent-gold"
+            />
+          </label>
+
+          {/* Live preview of the current frame settings. */}
+          <div className="mt-4">
+            <span className="font-body text-xs font-medium text-ink/55">Preview</span>
+            <div className="mt-1.5 flex h-24 items-stretch justify-stretch rounded-sm bg-panel p-1">
+              <div
+                className="flex w-full items-center justify-center rounded-sm bg-white"
+                style={
+                  settings.edge_frame_enabled !== "0" &&
+                  (Number.parseFloat(settings.edge_frame_thickness) || 0) > 0 &&
+                  HEX_COLOR_RE.test(settings.edge_frame_color)
+                    ? {
+                        margin: `${settings.edge_frame_inset}px`,
+                        border: `${settings.edge_frame_thickness}px solid ${settings.edge_frame_color}`,
+                      }
+                    : undefined
+                }
+              >
+                <span className="font-body text-xs text-ink/40">Page edge</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={saveEdgeFrame}
+            disabled={frameBusy}
+            className={`${btn} mt-4 bg-gold text-ink disabled:opacity-60`}
+          >
+            {frameBusy ? "Working..." : "Save frame"}
           </button>
         </div>
       </div>

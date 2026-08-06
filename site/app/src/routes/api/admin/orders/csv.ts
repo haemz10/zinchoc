@@ -36,6 +36,8 @@ export const Route = createFileRoute("/api/admin/orders/csv")({
           "payment_method",
           "status",
           "consent_at",
+          "reminder_sent_at",
+          "deleted_at",
         ].join(",");
         const rows = orders.map((o) =>
           [
@@ -55,6 +57,8 @@ export const Route = createFileRoute("/api/admin/orders/csv")({
             csvCell(o.payment_method),
             csvCell(o.status),
             csvCell(o.consent_at),
+            csvCell(o.reminder_sent_at),
+            csvCell(o.deleted_at),
           ].join(","),
         );
         const body = [header, ...rows].join("\r\n");

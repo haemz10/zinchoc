@@ -15,7 +15,7 @@ export const Route = createFileRoute("/faq")({
     const origin = loaderData?.origin ?? "";
     const title = "Questions | Zin Choc";
     const description =
-      "Allergens, dietary options, lead times, delivery, storage, payment terms and more for Zin Choc wedding chocolate bomboniere.";
+      "Allergens, dietary options, lead times, delivery, storage, payment terms and more for Zin Choc artisan chocolate catering.";
     return {
       meta: [
         { title },

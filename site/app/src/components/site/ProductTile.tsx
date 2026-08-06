@@ -7,7 +7,7 @@ import { formatAud, type Product } from "../../lib/types";
 // photo; otherwise a deliberately composed brand tile: ink-navy ground, small
 // silver heart-and-eye mark, product name in Marcellus.
 
-export function ProductTile({ product }: { product: Product }) {
+export function ProductTile({ product, logoKey }: { product: Product; logoKey?: string }) {
   const noun = product.unit.toLowerCase().includes("box") ? "boxes" : "pieces";
 
   return (
@@ -15,7 +15,18 @@ export function ProductTile({ product }: { product: Product }) {
       href={`/order?piece=${encodeURIComponent(product.slug)}`}
       className="group flex flex-col transition-transform duration-300 hover:-translate-y-1"
     >
-      {product.image_key ? (
+      {product.video_key ? (
+        <video
+          src={`/img/${product.video_key}`}
+          poster={product.image_key ? `/img/${product.image_key}` : undefined}
+          className="aspect-[4/5] w-full rounded-sm object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+      ) : product.image_key ? (
         <img
           src={`/img/${product.image_key}`}
           alt={`${product.name}, a Zin Choc wedding chocolate piece`}
@@ -27,11 +38,19 @@ export function ProductTile({ product }: { product: Product }) {
             aria-hidden="true"
             className="absolute inset-0 opacity-[0.06]"
             style={{
-              backgroundImage:
-                "radial-gradient(circle at 50% 38%, #B9BCC2 0%, transparent 55%)",
+              backgroundImage: "radial-gradient(circle at 50% 38%, #B9BCC2 0%, transparent 55%)",
             }}
           />
-          <HeartEyeMark variant="silver" className="h-14 w-14 opacity-90" />
+          {logoKey ? (
+            <img
+              src={`/img/${logoKey}`}
+              alt=""
+              aria-hidden="true"
+              className="h-14 w-14 object-contain opacity-90 brightness-0 invert"
+            />
+          ) : (
+            <HeartEyeMark variant="silver" className="h-14 w-14 opacity-90" />
+          )}
           <p className="mt-6 px-6 text-center font-display text-2xl text-beige">{product.name}</p>
           <p className="mt-2 font-body text-[0.7rem] uppercase tracking-[0.25em] text-silver">
             Photograph to come

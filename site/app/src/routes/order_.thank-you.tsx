@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SiteFooter } from "../components/site/SiteFooter";
 import { SiteHeader } from "../components/site/SiteHeader";
+import { StripeCardCta } from "../components/site/StripeCardCta";
 import { getThankYouData } from "../lib/api/order.functions";
+import { cardPaymentLink } from "../lib/payments";
 import { formatAud } from "../lib/types";
 
 // Order confirmation. Reached after payment (PayPal return URL) or from the
@@ -27,9 +29,11 @@ export const Route = createFileRoute("/order_/thank-you")({
 });
 
 function ThankYouPage() {
-  const { settings, order, faqVisible, galleryVisible } = Route.useLoaderData();
+  const { settings, order, origin, stripeEnabled, faqVisible, galleryVisible } =
+    Route.useLoaderData();
   const { paid } = Route.useSearch();
   const paidByCard = paid === "card";
+  const awaitingPayment = Boolean(order) && order?.status === "pending_payment" && !paidByCard;
 
   return (
     <>
@@ -76,6 +80,90 @@ function ThankYouPage() {
                   </dd>
                 </div>
               </dl>
+
+              {awaitingPayment && order ? (
+                <div className="mt-8 rounded-sm border border-gold/40 bg-gold/10 p-5">
+                  <h2 className="font-display text-xl text-ink">Complete your payment</h2>
+                  <p className="mt-2 font-body text-sm leading-relaxed text-ink/75">
+                    Your order is reserved and awaiting payment. Pay securely below, or use bank
+                    transfer with your reference {order.reference} as the description.
+                  </p>
+                  {stripeEnabled ? (
+                    <StripeCardCta reference={order.reference} totalCents={order.total_cents} />
+                  ) : null}
+                  {!stripeEnabled && settings.stripe_payment_link.trim() ? (
+                    <a
+                      href={cardPaymentLink(settings.stripe_payment_link, order.reference)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="mt-4 inline-flex items-center rounded-sm border border-ink px-6 py-3 font-body text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-px active:scale-[0.98]"
+                    >
+                      Pay {formatAud(order.total_cents)} by card
+                    </a>
+                  ) : null}
+                  {settings.paypal_email.trim() ? (
+                    <form
+                      method="post"
+                      action="https://www.paypal.com/cgi-bin/webscr"
+                      className="mt-3"
+                    >
+                      <input type="hidden" name="cmd" value="_xclick" />
+                      <input type="hidden" name="business" value={settings.paypal_email} />
+                      <input
+                        type="hidden"
+                        name="item_name"
+                        value={`Zin Choc order ${order.reference}`}
+                      />
+                      <input type="hidden" name="item_number" value={order.reference} />
+                      <input
+                        type="hidden"
+                        name="amount"
+                        value={(order.total_cents / 100).toFixed(2)}
+                      />
+                      <input type="hidden" name="currency_code" value="AUD" />
+                      <input type="hidden" name="no_shipping" value="1" />
+                      <input
+                        type="hidden"
+                        name="return"
+                        value={`${origin}/order/thank-you?ref=${encodeURIComponent(order.reference)}`}
+                      />
+                      <input
+                        type="hidden"
+                        name="cancel_return"
+                        value={`${origin}/order/thank-you?ref=${encodeURIComponent(order.reference)}`}
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center rounded-sm bg-gold px-6 py-3 font-body text-sm font-semibold text-ink transition-transform duration-200 hover:-translate-y-px active:scale-[0.98]"
+                      >
+                        Pay {formatAud(order.total_cents)} with PayPal
+                      </button>
+                    </form>
+                  ) : null}
+                  {settings.bank_account_name.trim() &&
+                  settings.bank_bsb.trim() &&
+                  settings.bank_account_number.trim() ? (
+                    <dl className="mt-4 space-y-1 border-t border-gold/30 pt-3 font-body text-sm text-ink/80">
+                      <div className="flex gap-3">
+                        <dt className="w-32 shrink-0 text-ink/55">Account name</dt>
+                        <dd>{settings.bank_account_name}</dd>
+                      </div>
+                      <div className="flex gap-3">
+                        <dt className="w-32 shrink-0 text-ink/55">BSB</dt>
+                        <dd>{settings.bank_bsb}</dd>
+                      </div>
+                      <div className="flex gap-3">
+                        <dt className="w-32 shrink-0 text-ink/55">Account number</dt>
+                        <dd>{settings.bank_account_number}</dd>
+                      </div>
+                      <div className="flex gap-3">
+                        <dt className="w-32 shrink-0 text-ink/55">Description</dt>
+                        <dd className="font-semibold">{order.reference}</dd>
+                      </div>
+                    </dl>
+                  ) : null}
+                </div>
+              ) : null}
 
               <h2 className="mt-10 font-display text-xl text-ink">What happens next</h2>
               <ol className="mt-4 space-y-3 font-body text-base leading-relaxed text-ink/75">

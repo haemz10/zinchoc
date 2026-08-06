@@ -2,11 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
-import { BRAND_COLOR_KEYS, DEFAULT_SETTINGS, HEX_COLOR_RE } from "../types";
+import {
+  BRAND_COLOR_KEYS,
+  DEFAULT_SETTINGS,
+  EDGE_FRAME_MAX_INSET,
+  EDGE_FRAME_MAX_THICKNESS,
+  HEX_COLOR_RE,
+} from "../types";
 
 import { adminConfigured, hashPassword, isAuthed } from "../auth.server";
-import { stripeKeyMasked } from "../stripe.server";
+import { stripeDiagnostics, stripeKeyMasked, validateStripeKey } from "../stripe.server";
 import {
+  markOrderReminded,
+  setOrderDeleted,
   createFaqItem,
   createProduct,
   deleteFaqItem,
@@ -28,7 +36,10 @@ import {
   setFaqVisible,
   setGalleryCaption,
   setGalleryVisible,
+  deleteProductImage,
+  getProductImages,
   setOrderStatus,
+  setProductVideoKey,
   setProductVisible,
   setSetting,
   updateFaqItem,
@@ -115,6 +126,33 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Remove a product's video (the R2 object is left in place; only the
+ * reference is cleared so the public site stops showing it). */
+export const adminClearProductVideo = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await setProductVideoKey(data.id, null);
+    return { ok: true as const };
+  });
+
+/** List all of a product's photos (cover first). */
+export const adminListProductImages = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    return { images: await getProductImages(data.id) };
+  });
+
+/** Remove one product photo by its image id. */
+export const adminDeleteProductImage = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ imageId: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await deleteProductImage(data.imageId);
+    return { ok: true as const };
+  });
+
 export const adminSetVisible = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({ id: z.number().int(), visible: z.boolean() }).parse(data),
@@ -174,13 +212,34 @@ const SettingsSchema = z.object({
   show_gallery: z.enum(["0", "1"]),
   show_collection_wedding: z.enum(["0", "1"]),
   show_collection_art: z.enum(["0", "1"]),
+  hero_kicker: z.string().trim().max(120),
   hero_headline: z.string().trim().max(200),
   hero_subline: z.string().trim().max(600),
   story_heading: z.string().trim().max(200),
   story_body: z.string().trim().max(4000),
+  story_closing_line: z.string().trim().max(300),
+  collection_kicker: z.string().trim().max(120),
+  collection_heading: z.string().trim().max(200),
+  collection_wedding_label: z.string().trim().max(120),
+  collection_art_label: z.string().trim().max(120),
+  commission_heading: z.string().trim().max(200),
+  commission_body: z.string().trim().max(800),
+  enquiry_kicker: z.string().trim().max(120),
+  enquiry_heading: z.string().trim().max(200),
+  enquiry_intro: z.string().trim().max(600),
+  closing_heading: z.string().trim().max(200),
   closing_line_1: z.string().trim().max(400),
   collection_intro: z.string().trim().max(800),
   order_notes_hint: z.string().trim().max(300),
+  process_heading: z.string().trim().max(200),
+  process_intro: z.string().trim().max(400),
+  process_steps: z.string().trim().max(6000),
+  gallery_empty_text: z.string().trim().max(400),
+  lead_time_text: z.string().trim().max(120),
+  footer_blurb: z.string().trim().max(400),
+  show_page_privacy: z.enum(["0", "1"]),
+  show_page_terms: z.enum(["0", "1"]),
+  show_page_shipping: z.enum(["0", "1"]),
   paypal_email: z.string().trim().max(200),
   bank_account_name: z.string().trim().max(120),
   bank_bsb: z.string().trim().max(20),
@@ -205,6 +264,30 @@ export const adminSetOrderStatus = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireAdmin();
     await setOrderStatus(data.id, data.status);
+    return { ok: true as const };
+  });
+
+/** One-time payment reminder marker. The reminder email itself opens in the
+ * owner's mail app (pre-written); this records that it was sent so the button
+ * can only ever be used once per order. */
+export const adminMarkOrderReminded = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const changed = await markOrderReminded(data.id);
+    if (!changed) {
+      return { ok: false as const, error: "A reminder was already sent for this order." };
+    }
+    return { ok: true as const };
+  });
+
+export const adminSetOrderDeleted = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.number().int(), deleted: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await setOrderDeleted(data.id, data.deleted);
     return { ok: true as const };
   });
 
@@ -252,7 +335,9 @@ export const adminDeleteGalleryImage = createServerFn({ method: "POST" })
   });
 
 export const adminClearSiteImage = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ slot: z.enum(["hero", "story", "logo"]) }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ slot: z.enum(["hero", "story", "logo", "og"]) }).parse(data),
+  )
   .handler(async ({ data }) => {
     await requireAdmin();
     await setSetting(`${data.slot}_image_key`, "");
@@ -274,13 +359,34 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("show_gallery", data.show_gallery);
     await setSetting("show_collection_wedding", data.show_collection_wedding);
     await setSetting("show_collection_art", data.show_collection_art);
+    await setSetting("hero_kicker", data.hero_kicker);
     await setSetting("hero_headline", data.hero_headline);
     await setSetting("hero_subline", data.hero_subline);
     await setSetting("story_heading", data.story_heading);
     await setSetting("story_body", data.story_body);
+    await setSetting("story_closing_line", data.story_closing_line);
+    await setSetting("collection_kicker", data.collection_kicker);
+    await setSetting("collection_heading", data.collection_heading);
+    await setSetting("collection_wedding_label", data.collection_wedding_label);
+    await setSetting("collection_art_label", data.collection_art_label);
+    await setSetting("commission_heading", data.commission_heading);
+    await setSetting("commission_body", data.commission_body);
+    await setSetting("enquiry_kicker", data.enquiry_kicker);
+    await setSetting("enquiry_heading", data.enquiry_heading);
+    await setSetting("enquiry_intro", data.enquiry_intro);
+    await setSetting("closing_heading", data.closing_heading);
     await setSetting("closing_line_1", data.closing_line_1);
     await setSetting("collection_intro", data.collection_intro);
     await setSetting("order_notes_hint", data.order_notes_hint);
+    await setSetting("process_heading", data.process_heading);
+    await setSetting("process_intro", data.process_intro);
+    await setSetting("process_steps", data.process_steps);
+    await setSetting("gallery_empty_text", data.gallery_empty_text);
+    await setSetting("lead_time_text", data.lead_time_text);
+    await setSetting("footer_blurb", data.footer_blurb);
+    await setSetting("show_page_privacy", data.show_page_privacy);
+    await setSetting("show_page_terms", data.show_page_terms);
+    await setSetting("show_page_shipping", data.show_page_shipping);
     await setSetting("paypal_email", data.paypal_email);
     await setSetting("bank_account_name", data.bank_account_name);
     await setSetting("bank_bsb", data.bank_bsb);
@@ -351,6 +457,29 @@ export const adminListLegalPages = createServerFn({ method: "POST" }).handler(as
   return { pages: await getAllLegalPages() };
 });
 
+/** Publish or hide one information page. Content is untouched; hidden pages
+ * drop out of the footer, the sitemap, and public view (admins still preview
+ * them). */
+export const adminSetPageVisible = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        slug: z.enum(["privacy", "terms", "shipping-refunds"]),
+        visible: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const key = {
+      privacy: "show_page_privacy",
+      terms: "show_page_terms",
+      "shipping-refunds": "show_page_shipping",
+    }[data.slug];
+    await setSetting(key, data.visible ? "1" : "0");
+    return { ok: true as const };
+  });
+
 export const adminSaveLegalPage = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z
@@ -380,15 +509,50 @@ export const adminChangePassword = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+function fnOrigin(): string {
+  try {
+    return new URL(getRequest().url).origin;
+  } catch {
+    return "";
+  }
+}
+
+/** Save the Stripe key only after Stripe itself accepts it: a $1 diagnostic
+ * Checkout session is created and immediately expired (nothing is charged).
+ * A key Stripe rejects is never stored, so a typo cannot break card payments. */
 export const adminSetStripeKey = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({ key: z.string().trim().min(8).max(300) }).parse(data),
   )
   .handler(async ({ data }) => {
     await requireAdmin();
+    const check = await validateStripeKey(data.key, fnOrigin());
+    if (!check.ok) {
+      const error =
+        check.failure.code === "egress_blocked"
+          ? `${check.failure.message} The key was not saved.`
+          : `Stripe rejected this key (${check.failure.code}): ${check.failure.message} The key was not saved.`;
+      return { ok: false as const, error, masked: await stripeKeyMasked() };
+    }
     await setSetting("stripe_secret_key", data.key);
+    await setSetting("stripe_checkout_active", "1");
     return { ok: true as const, masked: await stripeKeyMasked() };
   });
+
+/** Test the live card-payment path with the currently configured key(s).
+ * Creates and immediately expires a $1 diagnostic Checkout session per key;
+ * nothing is charged and nothing payable is left behind. The result also
+ * flips the customer-facing card button on or off, so a broken checkout is
+ * never offered. */
+export const adminTestStripe = createServerFn({ method: "POST" }).handler(async () => {
+  await requireAdmin();
+  const results = await stripeDiagnostics(fnOrigin());
+  const cardActive = results.some((r) => r.ok);
+  if (results.length > 0) {
+    await setSetting("stripe_checkout_active", cardActive ? "1" : "0");
+  }
+  return { results, card_active: cardActive };
+});
 
 export const adminClearStripeKey = createServerFn({ method: "POST" }).handler(async () => {
   await requireAdmin();
@@ -439,3 +603,35 @@ export const adminResetColors = createServerFn({ method: "POST" }).handler(async
   }
   return { ok: true as const };
 });
+
+// ---- Silver edge frame ---------------------------------------------------------
+// A thin line that traces all four edges of the viewport. Stored as four
+// settings so it renders from the same :root style injection as the palette.
+const EdgeFrameSchema = z.object({
+  enabled: z.boolean(),
+  color: HexColor,
+  thickness: z.number().min(0).max(EDGE_FRAME_MAX_THICKNESS),
+  inset: z.number().min(0).max(EDGE_FRAME_MAX_INSET),
+});
+
+export const adminSaveEdgeFrame = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => {
+    const parsed = EdgeFrameSchema.safeParse(data);
+    return parsed.success
+      ? { invalid: false as const, frame: parsed.data }
+      : { invalid: true as const };
+  })
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    if (data.invalid) {
+      return {
+        ok: false as const,
+        error: "The frame colour must be a valid hex value. Nothing was saved.",
+      };
+    }
+    await setSetting("edge_frame_enabled", data.frame.enabled ? "1" : "0");
+    await setSetting("edge_frame_color", data.frame.color.toLowerCase());
+    await setSetting("edge_frame_thickness", String(data.frame.thickness));
+    await setSetting("edge_frame_inset", String(data.frame.inset));
+    return { ok: true as const };
+  });
