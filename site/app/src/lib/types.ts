@@ -58,6 +58,17 @@ export type Settings = {
   hero_subline: string;
   story_heading: string;
   story_body: string;
+  story_closing_line: string;
+  collection_kicker: string;
+  collection_heading: string;
+  collection_wedding_label: string;
+  collection_art_label: string;
+  commission_heading: string;
+  commission_body: string;
+  enquiry_kicker: string;
+  enquiry_heading: string;
+  enquiry_intro: string;
+  closing_heading: string;
   closing_line_1: string;
   collection_intro: string;
   order_notes_hint: string;
@@ -75,6 +86,10 @@ export type Settings = {
   color_ink: string;
   color_gold: string;
   color_silver: string;
+  edge_frame_enabled: string;
+  edge_frame_color: string;
+  edge_frame_thickness: string;
+  edge_frame_inset: string;
   show_story: string;
   show_process: string;
   show_gallery: string;
@@ -146,6 +161,19 @@ export const DEFAULT_SETTINGS: Settings = {
   story_heading: "Curated artisan chocolates",
   story_body:
     "Zin Choc is not found in shops. Each piece begins as a sketch, becomes a mould, and is finished by hand in cocoa butter, gold and silver. We make wedding bomboniere the way a jeweller makes a ring: slowly, precisely, and for one couple at a time.\n\nWe work with fine couverture chocolate and take on a limited number of weddings each season, so every guest at your table receives something made, not manufactured. Every shell is polished, every box tied by hand, every detail matched to the two of you. Between weddings, the same hands cut and paint our art bonbon boxes: small collectible editions of the atelier's work.",
+  story_closing_line: "Begin with a conversation. Tell us about your day.",
+  collection_kicker: "The collection",
+  collection_heading: "Made to order, never made twice the same way",
+  collection_wedding_label: "The Collection · Wedding",
+  collection_art_label: "The Collection · Art",
+  commission_heading: "Commissions and new pieces",
+  commission_body:
+    "Beyond the launch collection we design one-off pieces around your story: a motif from your invitation, a colour from your table, a form that belongs to the two of you. New pieces are added each season.",
+  enquiry_kicker: "Your enquiry",
+  enquiry_heading: "Begin with a conversation",
+  enquiry_intro:
+    "Tell us about your day. We reply within two business days, and every enquiry is read by the person who will make your pieces.",
+  closing_heading: "Dates for the coming season are limited",
   closing_line_1: "If your wedding is within six months, we recommend enquiring now.",
   collection_intro:
     "Every piece is designed for one wedding, or made in a small collectible edition. All prices are in Australian dollars and include GST. Delivery is quoted separately, and lead time is four to six weeks from design approval.",
@@ -172,6 +200,10 @@ export const DEFAULT_SETTINGS: Settings = {
   color_ink: "#1c3040",
   color_gold: "#a9853e",
   color_silver: "#b9bcc2",
+  edge_frame_enabled: "1",
+  edge_frame_color: "#b9bcc2",
+  edge_frame_thickness: "1",
+  edge_frame_inset: "0",
   show_story: "1",
   show_process: "1",
   show_gallery: "1",
@@ -258,4 +290,34 @@ export function sanitizeBrandColors(settings: Settings): Record<BrandColorKey, s
     out[key] = HEX_COLOR_RE.test(value) ? value : DEFAULT_SETTINGS[key];
   }
   return out;
+}
+
+export type EdgeFrame = {
+  enabled: boolean;
+  color: string;
+  thickness: number;
+  inset: number;
+};
+
+// Bounds keep the fixed overlay from ever covering meaningful screen area or
+// injecting an invalid CSS value into the root <style>.
+export const EDGE_FRAME_MAX_THICKNESS = 8;
+export const EDGE_FRAME_MAX_INSET = 40;
+
+function clampNumber(raw: string, min: number, max: number, fallback: number): number {
+  const n = Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+/** Edge-frame config with any invalid stored value replaced by its default. */
+export function sanitizeEdgeFrame(settings: Settings): EdgeFrame {
+  return {
+    enabled: settings.edge_frame_enabled !== "0",
+    color: HEX_COLOR_RE.test(settings.edge_frame_color)
+      ? settings.edge_frame_color
+      : DEFAULT_SETTINGS.edge_frame_color,
+    thickness: clampNumber(settings.edge_frame_thickness, 0, EDGE_FRAME_MAX_THICKNESS, 1),
+    inset: clampNumber(settings.edge_frame_inset, 0, EDGE_FRAME_MAX_INSET, 0),
+  };
 }

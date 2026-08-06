@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
-import { BRAND_COLOR_KEYS, DEFAULT_SETTINGS, HEX_COLOR_RE } from "../types";
+import {
+  BRAND_COLOR_KEYS,
+  DEFAULT_SETTINGS,
+  EDGE_FRAME_MAX_INSET,
+  EDGE_FRAME_MAX_THICKNESS,
+  HEX_COLOR_RE,
+} from "../types";
 
 import { adminConfigured, hashPassword, isAuthed } from "../auth.server";
 import { stripeDiagnostics, stripeKeyMasked, validateStripeKey } from "../stripe.server";
@@ -211,6 +217,17 @@ const SettingsSchema = z.object({
   hero_subline: z.string().trim().max(600),
   story_heading: z.string().trim().max(200),
   story_body: z.string().trim().max(4000),
+  story_closing_line: z.string().trim().max(300),
+  collection_kicker: z.string().trim().max(120),
+  collection_heading: z.string().trim().max(200),
+  collection_wedding_label: z.string().trim().max(120),
+  collection_art_label: z.string().trim().max(120),
+  commission_heading: z.string().trim().max(200),
+  commission_body: z.string().trim().max(800),
+  enquiry_kicker: z.string().trim().max(120),
+  enquiry_heading: z.string().trim().max(200),
+  enquiry_intro: z.string().trim().max(600),
+  closing_heading: z.string().trim().max(200),
   closing_line_1: z.string().trim().max(400),
   collection_intro: z.string().trim().max(800),
   order_notes_hint: z.string().trim().max(300),
@@ -347,6 +364,17 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("hero_subline", data.hero_subline);
     await setSetting("story_heading", data.story_heading);
     await setSetting("story_body", data.story_body);
+    await setSetting("story_closing_line", data.story_closing_line);
+    await setSetting("collection_kicker", data.collection_kicker);
+    await setSetting("collection_heading", data.collection_heading);
+    await setSetting("collection_wedding_label", data.collection_wedding_label);
+    await setSetting("collection_art_label", data.collection_art_label);
+    await setSetting("commission_heading", data.commission_heading);
+    await setSetting("commission_body", data.commission_body);
+    await setSetting("enquiry_kicker", data.enquiry_kicker);
+    await setSetting("enquiry_heading", data.enquiry_heading);
+    await setSetting("enquiry_intro", data.enquiry_intro);
+    await setSetting("closing_heading", data.closing_heading);
     await setSetting("closing_line_1", data.closing_line_1);
     await setSetting("collection_intro", data.collection_intro);
     await setSetting("order_notes_hint", data.order_notes_hint);
@@ -575,3 +603,35 @@ export const adminResetColors = createServerFn({ method: "POST" }).handler(async
   }
   return { ok: true as const };
 });
+
+// ---- Silver edge frame ---------------------------------------------------------
+// A thin line that traces all four edges of the viewport. Stored as four
+// settings so it renders from the same :root style injection as the palette.
+const EdgeFrameSchema = z.object({
+  enabled: z.boolean(),
+  color: HexColor,
+  thickness: z.number().min(0).max(EDGE_FRAME_MAX_THICKNESS),
+  inset: z.number().min(0).max(EDGE_FRAME_MAX_INSET),
+});
+
+export const adminSaveEdgeFrame = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => {
+    const parsed = EdgeFrameSchema.safeParse(data);
+    return parsed.success
+      ? { invalid: false as const, frame: parsed.data }
+      : { invalid: true as const };
+  })
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    if (data.invalid) {
+      return {
+        ok: false as const,
+        error: "The frame colour must be a valid hex value. Nothing was saved.",
+      };
+    }
+    await setSetting("edge_frame_enabled", data.frame.enabled ? "1" : "0");
+    await setSetting("edge_frame_color", data.frame.color.toLowerCase());
+    await setSetting("edge_frame_thickness", String(data.frame.thickness));
+    await setSetting("edge_frame_inset", String(data.frame.inset));
+    return { ok: true as const };
+  });

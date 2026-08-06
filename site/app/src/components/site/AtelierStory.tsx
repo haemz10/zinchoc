@@ -26,9 +26,11 @@ export function AtelierStory({ settings }: { settings: Settings }) {
               {paragraph}
             </p>
           ))}
-          <p className="mt-6 font-body text-lg italic leading-relaxed text-ink">
-            Begin with a conversation. Tell us about your day.
-          </p>
+          {settings.story_closing_line.trim() ? (
+            <p className="mt-6 font-body text-lg italic leading-relaxed text-ink">
+              {settings.story_closing_line}
+            </p>
+          ) : null}
         </div>
 
         <div className="md:order-last">

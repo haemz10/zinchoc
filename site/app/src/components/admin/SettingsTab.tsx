@@ -7,6 +7,7 @@ import {
   adminGetSettings,
   adminResetColors,
   adminSaveColors,
+  adminSaveEdgeFrame,
   adminSaveSettings,
   adminSetStripeKey,
   adminTestStripe,
@@ -66,6 +67,8 @@ export function SettingsTab() {
   const [stripeMessage, setStripeMessage] = useState("");
   const [colorsBusy, setColorsBusy] = useState(false);
   const [colorsMessage, setColorsMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [frameBusy, setFrameBusy] = useState(false);
+  const [frameMessage, setFrameMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   // All hooks are declared above this line; the loading return below must stay
   // after the last hook (Rules of Hooks).
@@ -116,6 +119,17 @@ export function SettingsTab() {
           hero_subline: settings.hero_subline,
           story_heading: settings.story_heading,
           story_body: settings.story_body,
+          story_closing_line: settings.story_closing_line,
+          collection_kicker: settings.collection_kicker,
+          collection_heading: settings.collection_heading,
+          collection_wedding_label: settings.collection_wedding_label,
+          collection_art_label: settings.collection_art_label,
+          commission_heading: settings.commission_heading,
+          commission_body: settings.commission_body,
+          enquiry_kicker: settings.enquiry_kicker,
+          enquiry_heading: settings.enquiry_heading,
+          enquiry_intro: settings.enquiry_intro,
+          closing_heading: settings.closing_heading,
           closing_line_1: settings.closing_line_1,
           collection_intro: settings.collection_intro,
           order_notes_hint: settings.order_notes_hint,
@@ -299,6 +313,36 @@ export function SettingsTab() {
     }
   }
 
+  async function saveEdgeFrame() {
+    if (!settings) return;
+    setFrameMessage(null);
+    if (!HEX_COLOR_RE.test(settings.edge_frame_color)) {
+      setFrameMessage({ ok: false, text: "The frame colour is not a valid hex value." });
+      return;
+    }
+    setFrameBusy(true);
+    try {
+      const res = await adminSaveEdgeFrame({
+        data: {
+          enabled: settings.edge_frame_enabled !== "0",
+          color: settings.edge_frame_color,
+          thickness: Number.parseFloat(settings.edge_frame_thickness) || 0,
+          inset: Number.parseFloat(settings.edge_frame_inset) || 0,
+        },
+      });
+      if (res.ok) {
+        setFrameMessage({ ok: true, text: "Frame saved. Reload any open page to see it." });
+        await refresh();
+      } else {
+        setFrameMessage({ ok: false, text: res.error });
+      }
+    } catch {
+      setFrameMessage({ ok: false, text: "Could not save the frame. Please try again." });
+    } finally {
+      setFrameBusy(false);
+    }
+  }
+
   async function clearStripeKey() {
     if (
       typeof window !== "undefined" &&
@@ -476,6 +520,61 @@ export function SettingsTab() {
           />
         </label>
         <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Story closing line (italic line under the story; leave empty to hide)
+          </span>
+          <input
+            type="text"
+            value={settings.story_closing_line}
+            onChange={(e) => set("story_closing_line", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Collection section
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Collection kicker (small line above the heading)
+          </span>
+          <input
+            type="text"
+            value={settings.collection_kicker}
+            onChange={(e) => set("collection_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Collection heading</span>
+          <input
+            type="text"
+            value={settings.collection_heading}
+            onChange={(e) => set("collection_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="font-body text-xs font-medium text-ink/70">Wedding group label</span>
+            <input
+              type="text"
+              value={settings.collection_wedding_label}
+              onChange={(e) => set("collection_wedding_label", e.target.value)}
+              className={`mt-1 ${field}`}
+            />
+          </label>
+          <label className="block">
+            <span className="font-body text-xs font-medium text-ink/70">Art group label</span>
+            <input
+              type="text"
+              value={settings.collection_art_label}
+              onChange={(e) => set("collection_art_label", e.target.value)}
+              className={`mt-1 ${field}`}
+            />
+          </label>
+        </div>
+        <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">Collection introduction</span>
           <textarea
             rows={3}
@@ -486,7 +585,73 @@ export function SettingsTab() {
         </label>
         <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">
-            Closing line (under "Dates for the coming season are limited")
+            Commissions tile heading (the panel under the collection)
+          </span>
+          <input
+            type="text"
+            value={settings.commission_heading}
+            onChange={(e) => set("commission_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Commissions tile text</span>
+          <textarea
+            rows={3}
+            value={settings.commission_body}
+            onChange={(e) => set("commission_body", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Enquiry section
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Enquiry kicker (small line above the heading)
+          </span>
+          <input
+            type="text"
+            value={settings.enquiry_kicker}
+            onChange={(e) => set("enquiry_kicker", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Enquiry heading</span>
+          <input
+            type="text"
+            value={settings.enquiry_heading}
+            onChange={(e) => set("enquiry_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Enquiry introduction</span>
+          <textarea
+            rows={2}
+            value={settings.enquiry_intro}
+            onChange={(e) => set("enquiry_intro", e.target.value)}
+            className={`mt-1 ${field} resize-y`}
+          />
+        </label>
+
+        <h4 className="pt-2 font-body text-xs font-semibold uppercase tracking-wide text-ink/45">
+          Closing banner
+        </h4>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">Closing banner heading</span>
+          <input
+            type="text"
+            value={settings.closing_heading}
+            onChange={(e) => set("closing_heading", e.target.value)}
+            className={`mt-1 ${field}`}
+          />
+        </label>
+        <label className="block">
+          <span className="font-body text-xs font-medium text-ink/70">
+            Closing line (under the closing banner heading)
           </span>
           <input
             type="text"
@@ -820,6 +985,118 @@ export function SettingsTab() {
             className={`${btn} border border-ink/25 text-ink disabled:opacity-60`}
           >
             Reset to defaults
+          </button>
+        </div>
+
+        <div className="mt-6 border-t border-ink/10 pt-5">
+          <p className="font-body text-sm font-semibold text-ink">Silver edge frame</p>
+          <p className="mt-1 font-body text-xs leading-relaxed text-ink/60">
+            A thin line that traces all four edges of the screen, like a fine thread framing the
+            page. It sits above the page and never affects the layout.
+          </p>
+          {frameMessage ? (
+            <p
+              className={`mt-2 font-body text-xs ${frameMessage.ok ? "text-ink/70" : "text-[#8a2f2f]"}`}
+            >
+              {frameMessage.text}
+            </p>
+          ) : null}
+
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={settings.edge_frame_enabled !== "0"}
+              onChange={(e) => set("edge_frame_enabled", e.target.checked ? "1" : "0")}
+              className="mt-1 h-4 w-4 shrink-0 accent-gold"
+            />
+            <span className="font-body text-sm leading-relaxed text-ink/80">
+              Show the silver frame on every page
+            </span>
+          </label>
+
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="color"
+              value={toColorInput(settings.edge_frame_color)}
+              onChange={(e) => set("edge_frame_color", e.target.value)}
+              aria-label="Frame colour picker"
+              className="h-9 w-12 shrink-0 cursor-pointer rounded-sm border border-ink/25 bg-white p-0.5"
+            />
+            <input
+              type="text"
+              value={settings.edge_frame_color}
+              onChange={(e) => set("edge_frame_color", e.target.value)}
+              aria-label="Frame colour hex value"
+              className={`w-28 rounded-sm border px-2 py-1.5 font-mono text-xs text-ink focus:outline-none ${
+                HEX_COLOR_RE.test(settings.edge_frame_color)
+                  ? "border-ink/25 bg-white focus:border-gold"
+                  : "border-[#8a2f2f]/60 bg-[#8a2f2f]/5"
+              }`}
+            />
+            <span className="font-body text-sm text-ink/75">Frame colour</span>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="flex items-baseline justify-between font-body text-xs font-medium text-ink/70">
+              <span>Thickness</span>
+              <span className="font-mono text-ink/55">{settings.edge_frame_thickness}px</span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="8"
+              step="0.5"
+              value={settings.edge_frame_thickness}
+              onChange={(e) => set("edge_frame_thickness", e.target.value)}
+              className="mt-1 w-full accent-gold"
+            />
+          </label>
+
+          <label className="mt-3 block">
+            <span className="flex items-baseline justify-between font-body text-xs font-medium text-ink/70">
+              <span>Gap from the edge</span>
+              <span className="font-mono text-ink/55">{settings.edge_frame_inset}px</span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="40"
+              step="1"
+              value={settings.edge_frame_inset}
+              onChange={(e) => set("edge_frame_inset", e.target.value)}
+              className="mt-1 w-full accent-gold"
+            />
+          </label>
+
+          {/* Live preview of the current frame settings. */}
+          <div className="mt-4">
+            <span className="font-body text-xs font-medium text-ink/55">Preview</span>
+            <div className="mt-1.5 flex h-24 items-stretch justify-stretch rounded-sm bg-panel p-1">
+              <div
+                className="flex w-full items-center justify-center rounded-sm bg-white"
+                style={
+                  settings.edge_frame_enabled !== "0" &&
+                  (Number.parseFloat(settings.edge_frame_thickness) || 0) > 0 &&
+                  HEX_COLOR_RE.test(settings.edge_frame_color)
+                    ? {
+                        margin: `${settings.edge_frame_inset}px`,
+                        border: `${settings.edge_frame_thickness}px solid ${settings.edge_frame_color}`,
+                      }
+                    : undefined
+                }
+              >
+                <span className="font-body text-xs text-ink/40">Page edge</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={saveEdgeFrame}
+            disabled={frameBusy}
+            className={`${btn} mt-4 bg-gold text-ink disabled:opacity-60`}
+          >
+            {frameBusy ? "Working..." : "Save frame"}
           </button>
         </div>
       </div>

@@ -102,13 +102,14 @@ export function EnquirySection({
     <section id="enquiry" className="scroll-mt-24 bg-panel">
       <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
         <div className="max-w-2xl">
-          <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your enquiry</p>
+          <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">
+            {settings.enquiry_kicker}
+          </p>
           <h2 className="mt-4 font-display text-3xl leading-tight text-ink md:text-5xl">
-            Begin with a conversation
+            {settings.enquiry_heading}
           </h2>
           <p className="mt-5 font-body text-base leading-relaxed text-ink/75">
-            Tell us about your day. We reply within two business days, and every enquiry is read by
-            the person who will make your pieces.
+            {settings.enquiry_intro}
           </p>
         </div>
 

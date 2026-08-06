@@ -10,7 +10,7 @@ export function ClosingCta({ settings }: { settings: Settings }) {
     <section className="bg-ink">
       <div className="mx-auto max-w-4xl px-5 py-24 text-center md:py-32">
         <h2 className="font-display text-3xl leading-tight text-beige md:text-5xl">
-          Dates for the coming season are limited
+          {settings.closing_heading}
         </h2>
         <p className="mx-auto mt-5 max-w-xl font-body text-base leading-relaxed text-beige/80">
           {settings.closing_line_1}

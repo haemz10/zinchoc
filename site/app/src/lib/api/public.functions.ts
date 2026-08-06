@@ -11,7 +11,7 @@ import {
   getVisibleGalleryImages,
   getVisibleProducts,
 } from "../data.server";
-import { sanitizeBrandColors } from "../types";
+import { sanitizeBrandColors, sanitizeEdgeFrame } from "../types";
 
 // Public read functions. Route loaders call these (RPC) instead of importing
 // *.server.ts directly, because loaders also run in the browser on client-side
@@ -37,7 +37,7 @@ async function adminSession(): Promise<boolean> {
 // invalid stored value can never break the page (falls back to defaults).
 export const getBrandColors = createServerFn({ method: "GET" }).handler(async () => {
   const settings = await getSettings();
-  return { colors: sanitizeBrandColors(settings) };
+  return { colors: sanitizeBrandColors(settings), frame: sanitizeEdgeFrame(settings) };
 });
 
 export const getHomeData = createServerFn({ method: "GET" }).handler(async () => {
