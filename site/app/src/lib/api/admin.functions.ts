@@ -41,6 +41,7 @@ import {
   setOrderStatus,
   setProductVideoKey,
   setProductVisible,
+  resolveProductSlug,
   setSetting,
   updateFaqItem,
   updateLegalPage,
@@ -69,50 +70,75 @@ export const adminListProducts = createServerFn({ method: "POST" }).handler(asyn
   return { products: await getAllProducts() };
 });
 
+// Permissive on purpose: the owner edits their own catalogue, so we accept
+// generous lengths and never hard-reject on formatting. The slug is optional
+// (derived from the name server-side when blank) and is sanitized + de-duplicated
+// in resolveProductSlug, so a save can't fail over slug characters or a clash.
 const ProductSchema = z.object({
   id: z.number().int().optional(),
-  slug: z
+  slug: z.string().trim().max(120).optional().default(""),
+  name: z
     .string()
     .trim()
-    .min(1)
-    .max(80)
-    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers and hyphens."),
-  name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(2000).default(""),
+    .min(1, "Please give the product a name.")
+    .max(200, "The name is a little long — please keep it under 200 characters."),
+  description: z.string().trim().max(20000).default(""),
   price_cents: z.number().int().min(0).max(100_000_000),
-  unit: z.string().trim().min(1).max(60),
-  min_order: z.number().int().min(1).max(100_000),
-  sort: z.number().int().min(0).max(100_000),
+  unit: z.string().trim().max(80).default(""),
+  min_order: z.number().int().min(1).max(1_000_000),
+  sort: z.number().int().min(0).max(1_000_000),
   visible: z.boolean(),
   category: z.enum(["wedding", "art"]),
 });
 
 export const adminSaveProduct = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => ProductSchema.parse(data))
+  .inputValidator((data: unknown) => {
+    // safeParse (not parse) so a validation problem returns a friendly, typed
+    // message the admin form can show inline — instead of throwing an opaque
+    // error across the RPC boundary and failing the whole save silently.
+    const parsed = ProductSchema.safeParse(data);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const friendly =
+        issue && typeof issue.message === "string" && !issue.message.startsWith("Invalid")
+          ? issue.message
+          : "Some product details were not valid. Please check the fields and try again.";
+      return { invalid: true as const, error: friendly };
+    }
+    return { invalid: false as const, value: parsed.data };
+  })
   .handler(async ({ data }) => {
     await requireAdmin();
+    if (data.invalid) {
+      return { ok: false as const, error: data.error };
+    }
+    const v = data.value;
+    const slug = await resolveProductSlug(v.slug, v.name, v.id);
     const input = {
-      slug: data.slug,
-      name: data.name,
-      description: data.description,
-      price_cents: data.price_cents,
-      unit: data.unit,
-      min_order: data.min_order,
-      sort: data.sort,
-      visible: data.visible ? 1 : 0,
-      category: data.category,
+      slug,
+      name: v.name,
+      description: v.description,
+      price_cents: v.price_cents,
+      unit: v.unit,
+      min_order: v.min_order,
+      sort: v.sort,
+      visible: v.visible ? 1 : 0,
+      category: v.category,
     };
     try {
-      if (data.id) {
-        await updateProduct(data.id, input);
+      if (v.id) {
+        await updateProduct(v.id, input);
       } else {
         await createProduct(input);
       }
-      return { ok: true as const };
+      return { ok: true as const, slug };
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       if (message.includes("UNIQUE")) {
-        return { ok: false as const, error: "That slug is already in use." };
+        return {
+          ok: false as const,
+          error: "That web address (slug) is already used by another product. Try a different slug.",
+        };
       }
       return { ok: false as const, error: "Could not save the product. Please try again." };
     }

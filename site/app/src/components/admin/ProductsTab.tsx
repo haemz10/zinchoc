@@ -113,9 +113,14 @@ export function ProductsTab() {
   async function save() {
     if (!draft) return;
     setSaveError("");
-    const priceCents = Math.round(Number.parseFloat(draft.price || "0") * 100);
+    // Accept "12.50" or "12,50"; treat blank as free (0).
+    const priceCents = Math.round(Number.parseFloat((draft.price || "0").replace(",", ".")) * 100);
     if (!Number.isFinite(priceCents) || priceCents < 0) {
-      setSaveError("Please enter a valid price in dollars.");
+      setSaveError("Please enter the price as a number, for example 12.50.");
+      return;
+    }
+    if (!draft.name.trim()) {
+      setSaveError("Please give the product a name.");
       return;
     }
     setBusy(true);
@@ -123,7 +128,7 @@ export function ProductsTab() {
       const res = await adminSaveProduct({
         data: {
           id: draft.id,
-          slug: draft.slug.trim().toLowerCase(),
+          slug: draft.slug.trim(),
           name: draft.name.trim(),
           description: draft.description.trim(),
           price_cents: priceCents,
@@ -140,8 +145,8 @@ export function ProductsTab() {
       } else {
         setSaveError(res.error ?? "Could not save the product.");
       }
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Could not save the product.");
+    } catch {
+      setSaveError("Could not save the product. Please check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -270,19 +275,26 @@ export function ProductsTab() {
             </label>
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">
-                Slug (lowercase, hyphens)
+                Slug — web address (optional)
               </span>
               <input
                 type="text"
                 value={draft.slug}
                 onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+                placeholder="leave blank to auto-generate"
                 className={`mt-1 ${field}`}
               />
+              <span className="mt-1 block font-body text-[0.7rem] text-ink/50">
+                Leave blank and we create one from the name. Any characters are fine — we tidy it
+                for you.
+              </span>
             </label>
             <label className="block sm:col-span-2">
-              <span className="font-body text-xs font-medium text-ink/70">Description</span>
+              <span className="font-body text-xs font-medium text-ink/70">
+                Description (detailed text is fine)
+              </span>
               <textarea
-                rows={3}
+                rows={6}
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 className={`mt-1 ${field} resize-y`}

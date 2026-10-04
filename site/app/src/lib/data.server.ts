@@ -226,6 +226,41 @@ export type ProductInput = {
   category: string;
 };
 
+// Turn free text into a URL-safe slug; empty when the text has no usable
+// ASCII characters (e.g. a name written only in Korean).
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
+    .replace(/-+$/g, "");
+}
+
+// Resolve the slug to store: prefer the owner's typed slug, else derive it from
+// the name, else a stable fallback — then guarantee uniqueness so saving a
+// product never fails over a duplicate web address. excludeId keeps a product's
+// own slug available when editing it.
+export async function resolveProductSlug(
+  desired: string,
+  name: string,
+  excludeId?: number,
+): Promise<string> {
+  const base = slugify(desired) || slugify(name) || "item";
+  const db = getDb();
+  if (!db) return base;
+  let candidate = base;
+  for (let n = 2; n <= 999; n++) {
+    const row = await db
+      .prepare("SELECT id FROM products WHERE slug = ?")
+      .bind(candidate)
+      .first<{ id: number }>();
+    if (!row || row.id === excludeId) return candidate;
+    candidate = `${base}-${n}`;
+  }
+  return `${base}-${Date.now().toString().slice(-5)}`;
+}
+
 export async function createProduct(input: ProductInput): Promise<void> {
   const db = getDb();
   if (!db) return;
