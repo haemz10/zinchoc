@@ -47,10 +47,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { products, settings, origin, faqVisible, galleryVisible, faqItems } =
+  const { products, settings, categories, origin, faqVisible, galleryVisible, faqItems } =
     Route.useLoaderData();
-  const showCollection =
-    settings.show_collection_wedding === "1" || settings.show_collection_art === "1";
+  const showCollection = categories.some((c) => c.visible === 1);
 
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
@@ -102,7 +101,9 @@ function Home() {
       <main>
         <Hero settings={settings} />
         {settings.show_story === "1" ? <AtelierStory settings={settings} /> : null}
-        {showCollection ? <Collection products={products} settings={settings} /> : null}
+        {showCollection ? (
+          <Collection products={products} settings={settings} categories={categories} />
+        ) : null}
         {settings.show_process === "1" ? <HowItWorks settings={settings} /> : null}
         {faqVisible ? <FaqExcerpt items={faqItems} settings={settings} /> : null}
         <EnquirySection products={products} settings={settings} />

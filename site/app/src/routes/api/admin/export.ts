@@ -12,6 +12,7 @@ const TABLES = [
   "settings",
   "products",
   "product_images",
+  "categories",
   "gallery_images",
   "faq_items",
   "legal_pages",

@@ -6,6 +6,7 @@ import { SEED_FAQS, SEED_LEGAL_PAGES } from "./content-seed";
 import {
   DEFAULT_SETTINGS,
   SEED_PRODUCTS,
+  type Category,
   type Enquiry,
   type FaqItem,
   type GalleryImage,
@@ -126,8 +127,6 @@ export async function getSettings(): Promise<Settings> {
       story_closing_line: pick("story_closing_line"),
       collection_kicker: pick("collection_kicker"),
       collection_heading: pick("collection_heading"),
-      collection_wedding_label: pick("collection_wedding_label"),
-      collection_art_label: pick("collection_art_label"),
       commission_heading: pick("commission_heading"),
       commission_body: pick("commission_body"),
       enquiry_kicker: pick("enquiry_kicker"),
@@ -158,8 +157,6 @@ export async function getSettings(): Promise<Settings> {
       show_story: pick("show_story"),
       show_process: pick("show_process"),
       show_gallery: pick("show_gallery"),
-      show_collection_wedding: pick("show_collection_wedding"),
-      show_collection_art: pick("show_collection_art"),
       paypal_email: pick("paypal_email"),
       bank_account_name: pick("bank_account_name"),
       bank_bsb: pick("bank_bsb"),
@@ -259,6 +256,116 @@ export async function resolveProductSlug(
     candidate = `${base}-${n}`;
   }
   return `${base}-${Date.now().toString().slice(-5)}`;
+}
+
+// ---- Categories --------------------------------------------------------------
+// Owner-managed collection groupings. Products reference a category by its
+// stable `key`; the label/order/visibility are editable from the admin.
+
+type CategoryRow = { id: number; key: string; label: string; sort: number; visible: number };
+
+// Fallback used only before the D1 binding exists, so the public collection
+// still renders its launch groups.
+const SEED_CATEGORIES: Category[] = [
+  { id: 1, key: "premium", label: "Premium Collection", sort: 1, visible: 1 },
+  { id: 2, key: "art", label: "Art Collection", sort: 2, visible: 1 },
+  { id: 3, key: "cookies", label: "Cookies & Desserts", sort: 3, visible: 1 },
+];
+
+export async function getAllCategories(): Promise<Category[]> {
+  const db = getDb();
+  if (!db) return SEED_CATEGORIES.map((c) => ({ ...c }));
+  try {
+    const res = await db
+      .prepare("SELECT id, key, label, sort, visible FROM categories ORDER BY sort ASC, id ASC")
+      .all<CategoryRow>();
+    const rows = res.results ?? [];
+    return rows.length ? rows : SEED_CATEGORIES.map((c) => ({ ...c }));
+  } catch {
+    return SEED_CATEGORIES.map((c) => ({ ...c }));
+  }
+}
+
+export async function getVisibleCategories(): Promise<Category[]> {
+  return (await getAllCategories()).filter((c) => c.visible === 1);
+}
+
+// Unique, URL-safe key derived from the label.
+async function resolveCategoryKey(label: string): Promise<string> {
+  const db = getDb();
+  const base = slugify(label) || "category";
+  if (!db) return base;
+  let candidate = base;
+  for (let n = 2; n <= 999; n++) {
+    const row = await db
+      .prepare("SELECT id FROM categories WHERE key = ?")
+      .bind(candidate)
+      .first<{ id: number }>();
+    if (!row) return candidate;
+    candidate = `${base}-${n}`;
+  }
+  return `${base}-${Date.now().toString().slice(-5)}`;
+}
+
+export async function createCategory(label: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const key = await resolveCategoryKey(label);
+  const row = await db
+    .prepare("SELECT COALESCE(MAX(sort), 0) + 1 AS n FROM categories")
+    .first<{ n: number }>();
+  const sort = row?.n ?? 1;
+  await db
+    .prepare("INSERT INTO categories (key, label, sort, visible) VALUES (?, ?, ?, 1)")
+    .bind(key, label, sort)
+    .run();
+}
+
+export async function updateCategory(id: number, label: string, visible: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .prepare("UPDATE categories SET label = ?, visible = ? WHERE id = ?")
+    .bind(label, visible, id)
+    .run();
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  // Move this category's products to the first remaining category so they are
+  // never orphaned, then remove the row.
+  const target = await db
+    .prepare("SELECT key FROM categories WHERE id != ? ORDER BY sort ASC, id ASC LIMIT 1")
+    .bind(id)
+    .first<{ key: string }>();
+  const victim = await db
+    .prepare("SELECT key FROM categories WHERE id = ?")
+    .bind(id)
+    .first<{ key: string }>();
+  if (victim && target) {
+    await db
+      .prepare("UPDATE products SET category = ? WHERE category = ?")
+      .bind(target.key, victim.key)
+      .run();
+  }
+  await db.prepare("DELETE FROM categories WHERE id = ?").bind(id).run();
+}
+
+export async function moveCategory(id: number, dir: "up" | "down"): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  const cats = await getAllCategories();
+  const idx = cats.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= cats.length) return;
+  const a = cats[idx];
+  const b = cats[swapIdx];
+  await db.batch([
+    db.prepare("UPDATE categories SET sort = ? WHERE id = ?").bind(b.sort, a.id),
+    db.prepare("UPDATE categories SET sort = ? WHERE id = ?").bind(a.sort, b.id),
+  ]);
 }
 
 export async function createProduct(input: ProductInput): Promise<void> {

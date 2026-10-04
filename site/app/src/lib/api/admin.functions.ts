@@ -17,13 +17,16 @@ import {
   setOrderDeleted,
   createFaqItem,
   createProduct,
+  createCategory,
   deleteFaqItem,
+  deleteCategory,
   deleteGalleryImage,
   deleteProduct,
   getAllFaqItems,
   getAllGalleryImages,
   getAllLegalPages,
   getAllProducts,
+  getAllCategories,
   getDb,
   getEnquiries,
   getOrders,
@@ -32,6 +35,7 @@ import {
   moveFaqItem,
   moveGalleryImage,
   moveProduct,
+  moveCategory,
   setEnquiryStatus,
   setFaqVisible,
   setGalleryCaption,
@@ -46,6 +50,7 @@ import {
   updateFaqItem,
   updateLegalPage,
   updateProduct,
+  updateCategory,
 } from "../data.server";
 
 // Admin server functions. Every data function verifies the signed session
@@ -70,6 +75,58 @@ export const adminListProducts = createServerFn({ method: "POST" }).handler(asyn
   return { products: await getAllProducts() };
 });
 
+// ---- Categories --------------------------------------------------------------
+// Owner-managed collection groupings. Products reference a category by its key.
+
+export const adminListCategories = createServerFn({ method: "POST" }).handler(async () => {
+  await requireAdmin();
+  return { categories: await getAllCategories() };
+});
+
+export const adminCreateCategory = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ label: z.string().trim().min(1, "Please name the category.").max(80) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await createCategory(data.label);
+    return { ok: true as const };
+  });
+
+export const adminUpdateCategory = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.number().int(),
+        label: z.string().trim().min(1, "Please name the category.").max(80),
+        visible: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await updateCategory(data.id, data.label, data.visible ? 1 : 0);
+    return { ok: true as const };
+  });
+
+export const adminMoveCategory = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.number().int(), dir: z.enum(["up", "down"]) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await moveCategory(data.id, data.dir);
+    return { ok: true as const };
+  });
+
+export const adminDeleteCategory = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ id: z.number().int() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    await deleteCategory(data.id);
+    return { ok: true as const };
+  });
+
 // Permissive on purpose: the owner edits their own catalogue, so we accept
 // generous lengths and never hard-reject on formatting. The slug is optional
 // (derived from the name server-side when blank) and is sanitized + de-duplicated
@@ -88,7 +145,7 @@ const ProductSchema = z.object({
   min_order: z.number().int().min(1).max(1_000_000),
   sort: z.number().int().min(0).max(1_000_000),
   visible: z.boolean(),
-  category: z.enum(["wedding", "art"]),
+  category: z.string().trim().min(1).max(60),
 });
 
 export const adminSaveProduct = createServerFn({ method: "POST" })
@@ -137,7 +194,8 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       if (message.includes("UNIQUE")) {
         return {
           ok: false as const,
-          error: "That web address (slug) is already used by another product. Try a different slug.",
+          error:
+            "That web address (slug) is already used by another product. Try a different slug.",
         };
       }
       return { ok: false as const, error: "Could not save the product. Please try again." };
@@ -236,8 +294,6 @@ const SettingsSchema = z.object({
   show_story: z.enum(["0", "1"]),
   show_process: z.enum(["0", "1"]),
   show_gallery: z.enum(["0", "1"]),
-  show_collection_wedding: z.enum(["0", "1"]),
-  show_collection_art: z.enum(["0", "1"]),
   hero_kicker: z.string().trim().max(120),
   hero_headline: z.string().trim().max(200),
   hero_subline: z.string().trim().max(600),
@@ -246,8 +302,6 @@ const SettingsSchema = z.object({
   story_closing_line: z.string().trim().max(300),
   collection_kicker: z.string().trim().max(120),
   collection_heading: z.string().trim().max(200),
-  collection_wedding_label: z.string().trim().max(120),
-  collection_art_label: z.string().trim().max(120),
   commission_heading: z.string().trim().max(200),
   commission_body: z.string().trim().max(800),
   enquiry_kicker: z.string().trim().max(120),
@@ -383,8 +437,6 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("show_story", data.show_story);
     await setSetting("show_process", data.show_process);
     await setSetting("show_gallery", data.show_gallery);
-    await setSetting("show_collection_wedding", data.show_collection_wedding);
-    await setSetting("show_collection_art", data.show_collection_art);
     await setSetting("hero_kicker", data.hero_kicker);
     await setSetting("hero_headline", data.hero_headline);
     await setSetting("hero_subline", data.hero_subline);
@@ -393,8 +445,6 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await setSetting("story_closing_line", data.story_closing_line);
     await setSetting("collection_kicker", data.collection_kicker);
     await setSetting("collection_heading", data.collection_heading);
-    await setSetting("collection_wedding_label", data.collection_wedding_label);
-    await setSetting("collection_art_label", data.collection_art_label);
     await setSetting("commission_heading", data.commission_heading);
     await setSetting("commission_body", data.commission_body);
     await setSetting("enquiry_kicker", data.enquiry_kicker);

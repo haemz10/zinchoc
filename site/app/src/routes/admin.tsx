@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { EnquiriesTab } from "../components/admin/EnquiriesTab";
+import { CategoriesTab } from "../components/admin/CategoriesTab";
 import { FaqTab } from "../components/admin/FaqTab";
 import { GalleryTab } from "../components/admin/GalleryTab";
 import { PagesTab } from "../components/admin/PagesTab";
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/admin")({
 
 const TABS = [
   { id: "products", label: "Products" },
+  { id: "categories", label: "Categories" },
   { id: "gallery", label: "Gallery" },
   { id: "orders", label: "Orders" },
   { id: "enquiries", label: "Enquiries" },
@@ -138,6 +140,7 @@ function AdminPage() {
 
       <div className="mt-8">
         {tab === "products" ? <ProductsTab /> : null}
+        {tab === "categories" ? <CategoriesTab /> : null}
         {tab === "gallery" ? <GalleryTab /> : null}
         {tab === "orders" ? <OrdersTab /> : null}
         {tab === "enquiries" ? <EnquiriesTab /> : null}

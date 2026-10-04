@@ -110,10 +110,6 @@ export function SettingsTab() {
           show_story: settings.show_story === "0" ? ("0" as const) : ("1" as const),
           show_process: settings.show_process === "0" ? ("0" as const) : ("1" as const),
           show_gallery: settings.show_gallery === "0" ? ("0" as const) : ("1" as const),
-          show_collection_wedding:
-            settings.show_collection_wedding === "0" ? ("0" as const) : ("1" as const),
-          show_collection_art:
-            settings.show_collection_art === "0" ? ("0" as const) : ("1" as const),
           hero_kicker: settings.hero_kicker,
           hero_headline: settings.hero_headline,
           hero_subline: settings.hero_subline,
@@ -122,8 +118,6 @@ export function SettingsTab() {
           story_closing_line: settings.story_closing_line,
           collection_kicker: settings.collection_kicker,
           collection_heading: settings.collection_heading,
-          collection_wedding_label: settings.collection_wedding_label,
-          collection_art_label: settings.collection_art_label,
           commission_heading: settings.commission_heading,
           commission_body: settings.commission_body,
           enquiry_kicker: settings.enquiry_kicker,
@@ -450,8 +444,6 @@ export function SettingsTab() {
           [
             { key: "show_story", label: "Story section (the atelier)" },
             { key: "show_process", label: "How commissioning works" },
-            { key: "show_collection_wedding", label: "Collection: wedding pieces" },
-            { key: "show_collection_art", label: "Collection: art bonbon boxes" },
             { key: "show_gallery", label: "Gallery page" },
             { key: "show_page_privacy", label: "Information: Privacy Policy page" },
             { key: "show_page_terms", label: "Information: Terms of Sale page" },
@@ -554,26 +546,10 @@ export function SettingsTab() {
             className={`mt-1 ${field}`}
           />
         </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="font-body text-xs font-medium text-ink/70">Wedding group label</span>
-            <input
-              type="text"
-              value={settings.collection_wedding_label}
-              onChange={(e) => set("collection_wedding_label", e.target.value)}
-              className={`mt-1 ${field}`}
-            />
-          </label>
-          <label className="block">
-            <span className="font-body text-xs font-medium text-ink/70">Art group label</span>
-            <input
-              type="text"
-              value={settings.collection_art_label}
-              onChange={(e) => set("collection_art_label", e.target.value)}
-              className={`mt-1 ${field}`}
-            />
-          </label>
-        </div>
+        <p className="font-body text-[0.7rem] text-ink/50">
+          The collection&apos;s group headings (Premium Collection, Art Collection, …) are managed
+          in the Categories tab.
+        </p>
         <label className="block">
           <span className="font-body text-xs font-medium text-ink/70">Collection introduction</span>
           <textarea

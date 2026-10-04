@@ -4,13 +4,14 @@ import {
   adminClearProductVideo,
   adminDeleteProduct,
   adminDeleteProductImage,
+  adminListCategories,
   adminListProductImages,
   adminListProducts,
   adminMoveProduct,
   adminSaveProduct,
   adminSetVisible,
 } from "../../lib/api/admin.functions";
-import { formatAud, type Product } from "../../lib/types";
+import { formatAud, type Category, type Product } from "../../lib/types";
 
 // Admin products tab: list, create, edit, hide/show, reorder, delete with
 // confirm, and a media panel — MULTIPLE photos plus one short video clip —
@@ -43,7 +44,7 @@ const EMPTY_DRAFT: Draft = {
   min_order: "50",
   sort: "0",
   visible: true,
-  category: "wedding",
+  category: "",
   video_key: null,
 };
 
@@ -52,7 +53,7 @@ const field =
 const btn =
   "inline-flex items-center rounded-sm px-3 py-1.5 font-body text-xs font-medium transition-transform active:scale-[0.98]";
 
-function draftFromProduct(p: Product): Draft {
+function draftFromProduct(p: Product, categories: Category[]): Draft {
   return {
     id: p.id,
     slug: p.slug,
@@ -63,13 +64,16 @@ function draftFromProduct(p: Product): Draft {
     min_order: String(p.min_order),
     sort: String(p.sort),
     visible: p.visible === 1,
-    category: p.category === "art" ? "art" : "wedding",
+    category: categories.some((c) => c.key === p.category)
+      ? p.category
+      : (categories[0]?.key ?? p.category),
     video_key: p.video_key,
   };
 }
 
 export function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [images, setImages] = useState<ProductImage[]>([]);
@@ -80,8 +84,9 @@ export function ProductsTab() {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await adminListProducts();
+      const [res, cats] = await Promise.all([adminListProducts(), adminListCategories()]);
       setProducts(res.products);
+      setCategories(cats.categories);
       setDraft((d) => {
         if (!d?.id) return d;
         const p = res.products.find((x) => x.id === d.id);
@@ -136,7 +141,7 @@ export function ProductsTab() {
           min_order: Number.parseInt(draft.min_order || "1", 10) || 1,
           sort: Number.parseInt(draft.sort || "0", 10) || 0,
           visible: draft.visible,
-          category: draft.category === "art" ? ("art" as const) : ("wedding" as const),
+          category: draft.category || categories[0]?.key || "premium",
         },
       });
       if (res.ok) {
@@ -243,7 +248,11 @@ export function ProductsTab() {
           type="button"
           onClick={() => {
             setSaveError("");
-            setDraft({ ...EMPTY_DRAFT, sort: String(products.length + 1) });
+            setDraft({
+              ...EMPTY_DRAFT,
+              sort: String(products.length + 1),
+              category: categories[0]?.key ?? "",
+            });
           }}
           className={`${btn} bg-ink text-beige`}
         >
@@ -328,9 +337,17 @@ export function ProductsTab() {
                 onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                 className={`mt-1 ${field}`}
               >
-                <option value="wedding">Wedding</option>
-                <option value="art">Art</option>
+                {categories.length === 0 ? <option value="">No categories yet</option> : null}
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                    {c.visible === 1 ? "" : " (hidden)"}
+                  </option>
+                ))}
               </select>
+              <span className="mt-1 block font-body text-[0.7rem] text-ink/50">
+                Manage the list in the Categories tab.
+              </span>
             </label>
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">Minimum order</span>
@@ -503,7 +520,7 @@ export function ProductsTab() {
               </p>
               <p className="mt-0.5 font-body text-xs text-ink/60">
                 {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order},{" "}
-                {p.category === "art" ? "art" : "wedding"}
+                {categories.find((c) => c.key === p.category)?.label ?? p.category}
                 {p.video_key ? " · has video" : ""}
               </p>
             </div>
@@ -571,7 +588,7 @@ export function ProductsTab() {
                 type="button"
                 onClick={() => {
                   setSaveError("");
-                  setDraft(draftFromProduct(p));
+                  setDraft(draftFromProduct(p, categories));
                 }}
                 className={`${btn} bg-ink text-beige`}
               >

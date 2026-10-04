@@ -1,6 +1,26 @@
 // Shared, client-safe types. No bindings or secrets here.
 
-export type ProductCategory = "wedding" | "art";
+// A collection category is an owner-managed row: a stable `key` stored on each
+// product, plus an editable display `label`, order and visibility.
+export type Category = {
+  id: number;
+  key: string;
+  label: string;
+  sort: number;
+  visible: number;
+};
+
+// Legacy products were tagged "wedding"; map that (and anything no longer
+// matching a known category) onto the first available category so no product
+// ever drops out of the collection. Returns "" only when there are no
+// categories at all.
+export function normalizeCategory(category: string, categories: Category[]): string {
+  const key = (category ?? "").trim();
+  if (categories.some((c) => c.key === key)) return key;
+  const legacy = key === "wedding" || key === "";
+  if (legacy && categories.some((c) => c.key === "premium")) return "premium";
+  return categories[0]?.key ?? key;
+}
 
 export type Product = {
   id: number;
@@ -61,8 +81,6 @@ export type Settings = {
   story_closing_line: string;
   collection_kicker: string;
   collection_heading: string;
-  collection_wedding_label: string;
-  collection_art_label: string;
   commission_heading: string;
   commission_body: string;
   enquiry_kicker: string;
@@ -93,8 +111,6 @@ export type Settings = {
   show_story: string;
   show_process: string;
   show_gallery: string;
-  show_collection_wedding: string;
-  show_collection_art: string;
   paypal_email: string;
   bank_account_name: string;
   bank_bsb: string;
@@ -164,8 +180,6 @@ export const DEFAULT_SETTINGS: Settings = {
   story_closing_line: "Begin with a conversation. Tell us about your day.",
   collection_kicker: "The collection",
   collection_heading: "Made to order, never made twice the same way",
-  collection_wedding_label: "The Collection · Wedding",
-  collection_art_label: "The Collection · Art",
   commission_heading: "Commissions and new pieces",
   commission_body:
     "Beyond the launch collection we design one-off pieces around your story: a motif from your invitation, a colour from your table, a form that belongs to the two of you. New pieces are added each season.",
@@ -207,8 +221,6 @@ export const DEFAULT_SETTINGS: Settings = {
   show_story: "1",
   show_process: "1",
   show_gallery: "1",
-  show_collection_wedding: "1",
-  show_collection_art: "1",
   paypal_email: "zinchoc@naver.com",
   bank_account_name: "",
   bank_bsb: "",
@@ -233,7 +245,7 @@ export const SEED_PRODUCTS: Product[] = [
     video_key: null,
     sort: 1,
     visible: 1,
-    category: "wedding",
+    category: "premium",
   },
   {
     id: 2,
@@ -248,7 +260,7 @@ export const SEED_PRODUCTS: Product[] = [
     video_key: null,
     sort: 2,
     visible: 1,
-    category: "wedding",
+    category: "premium",
   },
 ];
 

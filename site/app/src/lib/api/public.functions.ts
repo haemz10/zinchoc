@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   getLegalPage,
   getSettings,
+  getVisibleCategories,
   getVisibleFaqItems,
   getVisibleGalleryImages,
   getVisibleProducts,
@@ -41,9 +42,10 @@ export const getBrandColors = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const getHomeData = createServerFn({ method: "GET" }).handler(async () => {
-  const [products, settings, isAdmin] = await Promise.all([
+  const [products, settings, categories, isAdmin] = await Promise.all([
     getVisibleProducts(),
     getSettings(),
+    getVisibleCategories(),
     adminSession(),
   ]);
   const faqVisible = settings.faq_public === "1" || isAdmin;
@@ -52,6 +54,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   return {
     products,
     settings,
+    categories,
     origin: requestOrigin(),
     faqVisible,
     galleryVisible,

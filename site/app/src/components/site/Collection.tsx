@@ -1,12 +1,12 @@
-import type { Product, Settings } from "../../lib/types";
+import type { Category, Product, Settings } from "../../lib/types";
+import { normalizeCategory } from "../../lib/types";
 import { ProductTile } from "./ProductTile";
 
-// The collection, split into two labelled groups: wedding bomboniere (the
-// lead) and art bonbon boxes. Renders visible products from D1, plus one quiet
-// "commissions and new pieces" enquiry tile so the grid reads complete at
-// launch and accepts new pieces by adding a data row. Two-up on desktop,
-// stacked on mobile. The art group shows a composed single line while empty,
-// never an empty grid.
+// The collection, split into owner-managed, labelled groups (one per visible
+// category, in the order set in admin). Each product is placed by its category
+// key; legacy/unknown values fall back to the first category so nothing is
+// lost. Plus one quiet "commissions and new pieces" enquiry tile so the grid
+// reads complete. Two-up on desktop, stacked on mobile.
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -17,11 +17,20 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Collection({ products, settings }: { products: Product[]; settings: Settings }) {
-  const showWedding = settings.show_collection_wedding === "1";
-  const showArt = settings.show_collection_art === "1";
-  const wedding = showWedding ? products.filter((p) => p.category !== "art") : [];
-  const art = showArt ? products.filter((p) => p.category === "art") : [];
+export function Collection({
+  products,
+  settings,
+  categories,
+}: {
+  products: Product[];
+  settings: Settings;
+  categories: Category[];
+}) {
+  const visible = categories.filter((c) => c.visible === 1);
+  const groups = visible.map((category) => ({
+    category,
+    items: products.filter((p) => normalizeCategory(p.category, visible) === category.key),
+  }));
 
   return (
     <section id="collection" className="bg-panel">
@@ -38,12 +47,12 @@ export function Collection({ products, settings }: { products: Product[]; settin
           </p>
         </div>
 
-        {showWedding ? (
-          <div className="mt-14">
-            <GroupLabel>{settings.collection_wedding_label}</GroupLabel>
-            {wedding.length > 0 ? (
+        {groups.map(({ category, items }, index) => (
+          <div key={category.key} className={index === 0 ? "mt-14" : "mt-16"}>
+            <GroupLabel>{category.label}</GroupLabel>
+            {items.length > 0 ? (
               <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
-                {wedding.map((product) => (
+                {items.map((product) => (
                   <ProductTile
                     key={product.slug}
                     product={product}
@@ -53,46 +62,18 @@ export function Collection({ products, settings }: { products: Product[]; settin
               </div>
             ) : (
               <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
-                Wedding pieces are being prepared for the season.{" "}
+                Pieces for this collection are being prepared.{" "}
                 <a
                   href="#enquiry"
                   className="text-ink underline decoration-gold underline-offset-4"
                 >
-                  Tell us about your day
+                  Enquire about a commission
                 </a>
                 .
               </p>
             )}
           </div>
-        ) : null}
-
-        {showArt ? (
-          <div className="mt-16">
-            <GroupLabel>{settings.collection_art_label}</GroupLabel>
-            {art.length > 0 ? (
-              <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
-                {art.map((product) => (
-                  <ProductTile
-                    key={product.slug}
-                    product={product}
-                    logoKey={settings.logo_image_key}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
-                Art bonbon boxes are joining the collection.{" "}
-                <a
-                  href="#enquiry"
-                  className="text-ink underline decoration-gold underline-offset-4"
-                >
-                  Enquire to commission an early piece
-                </a>
-                .
-              </p>
-            )}
-          </div>
-        ) : null}
+        ))}
 
         {/* Quiet commissions tile: not a product, a different treatment. */}
         <a
