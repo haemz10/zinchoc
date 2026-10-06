@@ -7,7 +7,15 @@ import { formatAud, type Product } from "../../lib/types";
 // photo; otherwise a deliberately composed brand tile: ink-navy ground, small
 // silver heart-and-eye mark, product name in Marcellus.
 
-export function ProductTile({ product, logoKey }: { product: Product; logoKey?: string }) {
+export function ProductTile({
+  product,
+  logoKey,
+  categoryLabel,
+}: {
+  product: Product;
+  logoKey?: string;
+  categoryLabel?: string;
+}) {
   const noun = product.unit.toLowerCase().includes("box") ? "boxes" : "pieces";
 
   return (
@@ -59,6 +67,11 @@ export function ProductTile({ product, logoKey }: { product: Product; logoKey?: 
       )}
 
       <div className="mt-5">
+        {categoryLabel ? (
+          <p className="mb-1.5 font-body text-[0.65rem] uppercase tracking-[0.25em] text-ink/45">
+            {categoryLabel}
+          </p>
+        ) : null}
         <h3 className="font-display text-2xl text-ink">{product.name}</h3>
         <p className="mt-2 max-w-md font-body text-sm leading-relaxed text-ink/70">
           {product.description}

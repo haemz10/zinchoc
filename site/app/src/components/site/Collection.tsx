@@ -2,20 +2,11 @@ import type { Category, Product, Settings } from "../../lib/types";
 import { normalizeCategory } from "../../lib/types";
 import { ProductTile } from "./ProductTile";
 
-// The collection, split into owner-managed, labelled groups (one per visible
-// category, in the order set in admin). Each product is placed by its category
-// key; legacy/unknown values fall back to the first category so nothing is
-// lost. Plus one quiet "commissions and new pieces" enquiry tile so the grid
-// reads complete. Two-up on desktop, stacked on mobile.
-
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="flex items-baseline gap-3 font-body text-xs uppercase tracking-[0.25em] text-ink/55">
-      <span aria-hidden="true" className="inline-block h-px w-8 self-center bg-silver" />
-      {children}
-    </h3>
-  );
-}
+// The collection: every visible product in one responsive grid (two-up on
+// desktop, stacked on mobile) so pieces sit side by side instead of each on its
+// own row. Products are ordered by category (in the order set in admin) and
+// carry their category name as a small label on the tile. Plus one quiet
+// "commissions and new pieces" enquiry tile so the grid reads complete.
 
 export function Collection({
   products,
@@ -27,10 +18,12 @@ export function Collection({
   categories: Category[];
 }) {
   const visible = categories.filter((c) => c.visible === 1);
-  const groups = visible.map((category) => ({
-    category,
-    items: products.filter((p) => normalizeCategory(p.category, visible) === category.key),
-  }));
+  // Flatten to one list in category order; each tile keeps its category label.
+  const tiles = visible.flatMap((category) =>
+    products
+      .filter((p) => normalizeCategory(p.category, visible) === category.key)
+      .map((product) => ({ product, label: category.label })),
+  );
 
   return (
     <section id="collection" className="bg-panel">
@@ -47,33 +40,26 @@ export function Collection({
           </p>
         </div>
 
-        {groups.map(({ category, items }, index) => (
-          <div key={category.key} className={index === 0 ? "mt-14" : "mt-16"}>
-            <GroupLabel>{category.label}</GroupLabel>
-            {items.length > 0 ? (
-              <div className="mt-8 grid gap-x-10 gap-y-14 sm:grid-cols-2">
-                {items.map((product) => (
-                  <ProductTile
-                    key={product.slug}
-                    product={product}
-                    logoKey={settings.logo_image_key}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-6 max-w-xl font-body text-base leading-relaxed text-ink/70">
-                Pieces for this collection are being prepared.{" "}
-                <a
-                  href="#enquiry"
-                  className="text-ink underline decoration-gold underline-offset-4"
-                >
-                  Enquire about a commission
-                </a>
-                .
-              </p>
-            )}
+        {tiles.length > 0 ? (
+          <div className="mt-12 grid gap-x-10 gap-y-14 sm:grid-cols-2">
+            {tiles.map(({ product, label }) => (
+              <ProductTile
+                key={product.slug}
+                product={product}
+                logoKey={settings.logo_image_key}
+                categoryLabel={label}
+              />
+            ))}
           </div>
-        ))}
+        ) : (
+          <p className="mt-10 max-w-xl font-body text-base leading-relaxed text-ink/70">
+            The collection is being prepared.{" "}
+            <a href="#enquiry" className="text-ink underline decoration-gold underline-offset-4">
+              Enquire about a commission
+            </a>
+            .
+          </p>
+        )}
 
         {/* Quiet commissions tile: not a product, a different treatment. */}
         <a
