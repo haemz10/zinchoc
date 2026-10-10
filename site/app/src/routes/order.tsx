@@ -141,24 +141,95 @@ function PieceChooser({ products }: { products: Product[] }) {
 // thumbnail strip when there is more than one. Client-only interactivity.
 function ProductGallery({ images, name }: { images: string[]; name: string }) {
   const [active, setActive] = useState(0);
-  const current = images[Math.min(active, images.length - 1)];
+  const count = images.length;
+  const idx = Math.min(active, count - 1);
+  const current = images[idx];
+  const go = (delta: number) =>
+    setActive((a) => {
+      const n = Math.min(a, count - 1);
+      return (n + delta + count) % count;
+    });
   return (
     <div className="mb-6">
-      <img
-        src={`/img/${current}`}
-        alt={`${name}, a Zin Choc piece`}
-        className="aspect-[4/5] w-full rounded-sm object-cover"
-      />
-      {images.length > 1 ? (
+      <div
+        className="group relative"
+        tabIndex={count > 1 ? 0 : -1}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label={`${name} photos`}
+        onKeyDown={(e) => {
+          if (count < 2) return;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(-1);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(1);
+          }
+        }}
+      >
+        <img
+          src={`/img/${current}`}
+          alt={`${name}, a Zin Choc piece (photo ${idx + 1} of ${count})`}
+          className="aspect-[4/5] w-full rounded-sm object-cover"
+        />
+        {count > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Previous photo"
+              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Next photo"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+            <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 font-body text-xs tabular-nums text-beige">
+              {idx + 1} / {count}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {count > 1 ? (
         <div className="mt-3 grid grid-cols-5 gap-2">
           {images.map((key, i) => (
             <button
               key={key}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`Show photo ${i + 1} of ${images.length}`}
+              aria-label={`Show photo ${i + 1} of ${count}`}
+              aria-current={i === idx ? "true" : undefined}
               className={`overflow-hidden rounded-sm border ${
-                i === active ? "border-gold" : "border-transparent"
+                i === idx ? "border-gold" : "border-transparent"
               }`}
             >
               <img

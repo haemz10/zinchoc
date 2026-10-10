@@ -37,7 +37,7 @@ export function ProductTile({
       ) : product.image_key ? (
         <img
           src={`/img/${product.image_key}`}
-          alt={`${product.name}, a Zin Choc wedding chocolate piece`}
+          alt={`${product.name}, a Zin Choc chocolate piece`}
           className="aspect-[4/5] w-full rounded-sm object-cover"
         />
       ) : (
