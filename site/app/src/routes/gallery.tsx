@@ -85,10 +85,18 @@ function GalleryPage() {
         <div className="mx-auto max-w-6xl px-5 py-14 md:py-20">
           {images.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-5 rounded-sm bg-ink px-6 py-24 text-center">
-              <HeartEyeMark variant="silver" className="h-16 w-16 opacity-80" />
+              {settings.logo_image_key ? (
+                <img
+                  src={`/img/${settings.logo_image_key}`}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-16 w-16 object-contain opacity-80 brightness-0 invert"
+                />
+              ) : (
+                <HeartEyeMark variant="silver" className="h-16 w-16 opacity-80" />
+              )}
               <p className="max-w-[36ch] font-body text-sm leading-relaxed text-beige/80">
-                Photographs from the atelier are on their way. In the meantime, the collection is
-                the best introduction to our work.
+                {settings.gallery_empty_text}
               </p>
               <a
                 href="/#collection"
@@ -101,12 +109,25 @@ function GalleryPage() {
             <div className="columns-2 gap-4 md:columns-3 md:gap-6">
               {images.map((img) => (
                 <figure key={img.id} className="mb-4 break-inside-avoid md:mb-6">
-                  <img
-                    src={`/img/${img.image_key}`}
-                    alt={img.caption?.trim() || "Handcrafted Zin Choc chocolate from the atelier"}
-                    loading="lazy"
-                    className="w-full rounded-sm object-cover"
-                  />
+                  {img.video_key ? (
+                    <video
+                      src={`/img/${img.video_key}`}
+                      poster={img.image_key ? `/img/${img.image_key}` : undefined}
+                      className="w-full rounded-sm object-cover"
+                      controls
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : img.image_key ? (
+                    <img
+                      src={`/img/${img.image_key}`}
+                      alt={img.caption?.trim() || "Handcrafted Zin Choc chocolate from the atelier"}
+                      loading="lazy"
+                      className="w-full rounded-sm object-cover"
+                    />
+                  ) : null}
                   {img.caption?.trim() ? (
                     <figcaption className="mt-2 font-body text-xs leading-relaxed text-ink/60">
                       {img.caption}

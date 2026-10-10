@@ -20,7 +20,7 @@ import appMetaJson from "../app-meta.json";
 declare const __HF_DESIGN_INSPECTOR__: boolean;
 
 // Built-in defaults for any field that isn't set in app-meta.json.
-const DEFAULT_TITLE = "Zin Choc | Wedding Chocolate Bomboniere, Made in Australia";
+const DEFAULT_TITLE = "Zin Choc | Artisan Chocolate Catering, Made in Australia";
 const DEFAULT_DESCRIPTION =
   "Luxury artisan chocolate, made in Australia: wedding bomboniere and collectible art bonbon boxes.";
 
@@ -174,7 +174,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const { colors } = Route.useLoaderData();
+  const { colors, frame } = Route.useLoaderData();
   const brandCss = `:root{--zc-ground:${colors.color_ground};--zc-panel:${colors.color_panel};--zc-ink:${colors.color_ink};--zc-gold:${colors.color_gold};--zc-silver:${colors.color_silver}}`;
 
   useEffect(() => {
@@ -200,6 +200,22 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Owner palette override; values are regex-validated hex colours. */}
       <style>{brandCss}</style>
+      {/* Silver edge frame: a thin owner-controlled line tracing all four sides
+          of the viewport. Fixed and pointer-events-none so it never affects
+          layout or blocks clicks; sanitized server-side. */}
+      {frame.enabled && frame.thickness > 0 ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: `${frame.inset}px`,
+            border: `${frame.thickness}px solid ${frame.color}`,
+            borderRadius: frame.inset > 0 ? "2px" : undefined,
+            pointerEvents: "none",
+            zIndex: 2147483000,
+          }}
+        />
+      ) : null}
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

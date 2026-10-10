@@ -1,9 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 
-import {
-  adminListEnquiries,
-  adminSetEnquiryStatus,
-} from "../../lib/api/admin.functions";
+import { adminListEnquiries, adminSetEnquiryStatus } from "../../lib/api/admin.functions";
 import type { Enquiry } from "../../lib/types";
 
 // Admin enquiries inbox: newest first, expandable message, new/replied status
@@ -78,7 +75,10 @@ export function EnquiriesTab() {
                     <td className="px-3 py-2.5 font-body text-xs text-ink/70">{e.created_at}</td>
                     <td className="px-3 py-2.5 font-body text-sm text-ink">{e.name}</td>
                     <td className="px-3 py-2.5 font-body text-sm text-ink">
-                      <a href={`mailto:${e.email}`} className="underline decoration-gold underline-offset-2">
+                      <a
+                        href={`mailto:${e.email}`}
+                        className="underline decoration-gold underline-offset-2"
+                      >
                         {e.email}
                       </a>
                     </td>

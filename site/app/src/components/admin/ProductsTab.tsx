@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
+  adminClearProductVideo,
   adminDeleteProduct,
+  adminDeleteProductImage,
+  adminListCategories,
+  adminListProductImages,
   adminListProducts,
   adminMoveProduct,
   adminSaveProduct,
   adminSetVisible,
 } from "../../lib/api/admin.functions";
-import { formatAud, type Product } from "../../lib/types";
+import { formatAud, type Category, type Product } from "../../lib/types";
 
 // Admin products tab: list, create, edit, hide/show, reorder, delete with
-// confirm, image upload to R2 with thumbnail preview.
+// confirm, and a media panel — MULTIPLE photos plus one short video clip —
+// both inside the edit form and on each product row. The first photo is the
+// cover used on the collection tiles; the full set shows on the order page.
+// Media uploads go to R2 via /api/admin/upload.
 
 type Draft = {
   id?: number;
@@ -23,7 +30,10 @@ type Draft = {
   sort: string;
   visible: boolean;
   category: string;
+  video_key: string | null;
 };
+
+type ProductImage = { id: number; image_key: string; sort: number };
 
 const EMPTY_DRAFT: Draft = {
   slug: "",
@@ -34,7 +44,8 @@ const EMPTY_DRAFT: Draft = {
   min_order: "50",
   sort: "0",
   visible: true,
-  category: "wedding",
+  category: "",
+  video_key: null,
 };
 
 const field =
@@ -42,7 +53,7 @@ const field =
 const btn =
   "inline-flex items-center rounded-sm px-3 py-1.5 font-body text-xs font-medium transition-transform active:scale-[0.98]";
 
-function draftFromProduct(p: Product): Draft {
+function draftFromProduct(p: Product, categories: Category[]): Draft {
   return {
     id: p.id,
     slug: p.slug,
@@ -53,24 +64,34 @@ function draftFromProduct(p: Product): Draft {
     min_order: String(p.min_order),
     sort: String(p.sort),
     visible: p.visible === 1,
-    category: p.category === "art" ? "art" : "wedding",
+    category: categories.some((c) => c.key === p.category)
+      ? p.category
+      : (categories[0]?.key ?? p.category),
+    video_key: p.video_key,
   };
 }
 
 export function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [saveError, setSaveError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [uploadingId, setUploadingId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState<{ id: number; kind: "image" | "video" } | null>(null);
   const [uploadError, setUploadError] = useState("");
-  const fileInputs = useRef(new Map<number, HTMLInputElement>());
 
   const refresh = useCallback(async () => {
     try {
-      const res = await adminListProducts();
+      const [res, cats] = await Promise.all([adminListProducts(), adminListCategories()]);
       setProducts(res.products);
+      setCategories(cats.categories);
+      setDraft((d) => {
+        if (!d?.id) return d;
+        const p = res.products.find((x) => x.id === d.id);
+        return p ? { ...d, video_key: p.video_key } : d;
+      });
     } finally {
       setLoading(false);
     }
@@ -80,12 +101,31 @@ export function ProductsTab() {
     void refresh();
   }, [refresh]);
 
+  const loadImages = useCallback(async (productId: number) => {
+    const res = await adminListProductImages({ data: { id: productId } });
+    setImages(res.images);
+  }, []);
+
+  // Load the edited product's photos whenever the open draft changes.
+  useEffect(() => {
+    if (draft?.id) {
+      void loadImages(draft.id);
+    } else {
+      setImages([]);
+    }
+  }, [draft?.id, loadImages]);
+
   async function save() {
     if (!draft) return;
     setSaveError("");
-    const priceCents = Math.round(Number.parseFloat(draft.price || "0") * 100);
+    // Accept "12.50" or "12,50"; treat blank as free (0).
+    const priceCents = Math.round(Number.parseFloat((draft.price || "0").replace(",", ".")) * 100);
     if (!Number.isFinite(priceCents) || priceCents < 0) {
-      setSaveError("Please enter a valid price in dollars.");
+      setSaveError("Please enter the price as a number, for example 12.50.");
+      return;
+    }
+    if (!draft.name.trim()) {
+      setSaveError("Please give the product a name.");
       return;
     }
     setBusy(true);
@@ -93,7 +133,7 @@ export function ProductsTab() {
       const res = await adminSaveProduct({
         data: {
           id: draft.id,
-          slug: draft.slug.trim().toLowerCase(),
+          slug: draft.slug.trim(),
           name: draft.name.trim(),
           description: draft.description.trim(),
           price_cents: priceCents,
@@ -101,7 +141,7 @@ export function ProductsTab() {
           min_order: Number.parseInt(draft.min_order || "1", 10) || 1,
           sort: Number.parseInt(draft.sort || "0", 10) || 0,
           visible: draft.visible,
-          category: draft.category === "art" ? ("art" as const) : ("wedding" as const),
+          category: draft.category || categories[0]?.key || "premium",
         },
       });
       if (res.ok) {
@@ -110,18 +150,22 @@ export function ProductsTab() {
       } else {
         setSaveError(res.error ?? "Could not save the product.");
       }
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Could not save the product.");
+    } catch {
+      setSaveError("Could not save the product. Please check your connection and try again.");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(p: Product) {
-    if (typeof window !== "undefined" && !window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Delete "${p.name}"? This cannot be undone.`)
+    ) {
       return;
     }
     await adminDeleteProduct({ data: { id: p.id } });
+    if (draft?.id === p.id) setDraft(null);
     await refresh();
   }
 
@@ -135,23 +179,61 @@ export function ProductsTab() {
     await refresh();
   }
 
-  async function uploadImage(p: Product, file: File) {
+  // Upload one file (photo appends to the set; video replaces the single clip).
+  async function uploadOne(id: number, kind: "image" | "video", file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("target", kind === "video" ? "product_video" : "product");
+    form.append("product_id", String(id));
+    const res = await fetch("/api/admin/upload", { method: "POST", body: form });
+    const json = (await res.json()) as { ok: boolean; error?: string };
+    if (!json.ok) throw new Error(json.error ?? "Upload failed.");
+  }
+
+  // Upload one or more photos (multi-select allowed), sequentially.
+  async function uploadPhotos(id: number, files: FileList) {
     setUploadError("");
-    setUploadingId(p.id);
+    setUploading({ id, kind: "image" });
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("target", "product");
-      form.append("product_id", String(p.id));
-      const res = await fetch("/api/admin/upload", { method: "POST", body: form });
-      const json = (await res.json()) as { ok: boolean; error?: string };
-      if (!json.ok) setUploadError(json.error ?? "Upload failed.");
+      for (const file of Array.from(files)) {
+        await uploadOne(id, "image", file);
+      }
       await refresh();
-    } catch {
-      setUploadError("Upload failed. Please try again.");
+      await loadImages(id);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+      await loadImages(id).catch(() => {});
     } finally {
-      setUploadingId(null);
+      setUploading(null);
     }
+  }
+
+  async function uploadVideo(id: number, file: File) {
+    setUploadError("");
+    setUploading({ id, kind: "video" });
+    try {
+      await uploadOne(id, "video", file);
+      await refresh();
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function deleteImage(imageId: number) {
+    if (typeof window !== "undefined" && !window.confirm("Remove this photo?")) return;
+    await adminDeleteProductImage({ data: { imageId } });
+    if (draft?.id) await loadImages(draft.id);
+    await refresh();
+  }
+
+  async function clearVideo(id: number) {
+    if (typeof window !== "undefined" && !window.confirm("Remove this video from the product?")) {
+      return;
+    }
+    await adminClearProductVideo({ data: { id } });
+    await refresh();
   }
 
   if (loading) {
@@ -166,7 +248,11 @@ export function ProductsTab() {
           type="button"
           onClick={() => {
             setSaveError("");
-            setDraft({ ...EMPTY_DRAFT, sort: String(products.length + 1) });
+            setDraft({
+              ...EMPTY_DRAFT,
+              sort: String(products.length + 1),
+              category: categories[0]?.key ?? "",
+            });
           }}
           className={`${btn} bg-ink text-beige`}
         >
@@ -185,9 +271,7 @@ export function ProductsTab() {
           <h3 className="font-display text-lg text-ink">
             {draft.id ? "Edit product" : "New product"}
           </h3>
-          {saveError ? (
-            <p className="mt-2 font-body text-sm text-[#8a2f2f]">{saveError}</p>
-          ) : null}
+          {saveError ? <p className="mt-2 font-body text-sm text-[#8a2f2f]">{saveError}</p> : null}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">Name</span>
@@ -200,19 +284,26 @@ export function ProductsTab() {
             </label>
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">
-                Slug (lowercase, hyphens)
+                Slug — web address (optional)
               </span>
               <input
                 type="text"
                 value={draft.slug}
                 onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+                placeholder="leave blank to auto-generate"
                 className={`mt-1 ${field}`}
               />
+              <span className="mt-1 block font-body text-[0.7rem] text-ink/50">
+                Leave blank and we create one from the name. Any characters are fine — we tidy it
+                for you.
+              </span>
             </label>
             <label className="block sm:col-span-2">
-              <span className="font-body text-xs font-medium text-ink/70">Description</span>
+              <span className="font-body text-xs font-medium text-ink/70">
+                Description (detailed text is fine)
+              </span>
               <textarea
-                rows={3}
+                rows={6}
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 className={`mt-1 ${field} resize-y`}
@@ -246,9 +337,17 @@ export function ProductsTab() {
                 onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                 className={`mt-1 ${field}`}
               >
-                <option value="wedding">Wedding</option>
-                <option value="art">Art</option>
+                {categories.length === 0 ? <option value="">No categories yet</option> : null}
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                    {c.visible === 1 ? "" : " (hidden)"}
+                  </option>
+                ))}
               </select>
+              <span className="mt-1 block font-body text-[0.7rem] text-ink/50">
+                Manage the list in the Categories tab.
+              </span>
             </label>
             <label className="block">
               <span className="font-body text-xs font-medium text-ink/70">Minimum order</span>
@@ -280,6 +379,87 @@ export function ProductsTab() {
               <span className="font-body text-sm text-ink/80">Visible on the public site</span>
             </label>
           </div>
+
+          {/* Photos + video for this product */}
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-ink/60">
+              Photos &amp; video
+            </p>
+            {draft.id ? (
+              <div className="mt-3 space-y-4">
+                {/* Multiple photos */}
+                <div>
+                  <p className="font-body text-xs font-medium text-ink/70">
+                    Photos ({images.length}) — the first is the cover on the collection
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {images.map((img, idx) => (
+                      <div
+                        key={img.id}
+                        className="group relative overflow-hidden rounded-sm border border-ink/15 bg-panel"
+                      >
+                        <img
+                          src={`/img/${img.image_key}`}
+                          alt={`Photo ${idx + 1}`}
+                          className="aspect-square w-full object-cover"
+                        />
+                        {idx === 0 ? (
+                          <span className="absolute left-1 top-1 rounded-sm bg-ink/80 px-1.5 py-0.5 font-body text-[0.6rem] uppercase tracking-wide text-beige">
+                            Cover
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => deleteImage(img.id)}
+                          className="absolute right-1 top-1 rounded-sm bg-[#8a2f2f] px-1.5 py-0.5 font-body text-[0.6rem] font-semibold text-white"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <label
+                      className={`flex aspect-square cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed border-ink/30 bg-panel/40 text-center font-body text-xs text-ink/60 ${
+                        uploading?.id === draft.id && uploading.kind === "image" ? "opacity-60" : ""
+                      }`}
+                    >
+                      {uploading?.id === draft.id && uploading.kind === "image"
+                        ? "Uploading..."
+                        : "+ Add photos"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="sr-only"
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files && files.length) void uploadPhotos(draft.id!, files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="mt-1 font-body text-[0.7rem] text-ink/50">
+                    You can select several photos at once. Remove any photo above; removing the
+                    cover promotes the next one.
+                  </p>
+                </div>
+
+                {/* Single video */}
+                <MediaBox
+                  keyValue={draft.video_key}
+                  uploading={uploading?.id === draft.id && uploading.kind === "video"}
+                  onPick={(f) => uploadVideo(draft.id!, f)}
+                  onClear={() => clearVideo(draft.id!)}
+                />
+              </div>
+            ) : (
+              <p className="mt-2 rounded-sm border border-gold/40 bg-gold/10 px-3 py-2 font-body text-xs leading-relaxed text-ink">
+                Save the product first, then the photo and video upload boxes appear here. You can
+                also upload them any time from the product row below.
+              </p>
+            )}
+          </div>
+
           <div className="mt-5 flex gap-3">
             <button
               type="button"
@@ -294,7 +474,7 @@ export function ProductsTab() {
               onClick={() => setDraft(null)}
               className={`${btn} border border-ink/25 text-ink`}
             >
-              Cancel
+              {draft.id ? "Close" : "Cancel"}
             </button>
           </div>
         </div>
@@ -315,17 +495,23 @@ export function ProductsTab() {
                   alt={`${p.name} thumbnail`}
                   className="h-full w-full object-cover"
                 />
+              ) : p.video_key ? (
+                <video
+                  src={`/img/${p.video_key}`}
+                  className="h-full w-full object-cover"
+                  muted
+                  playsInline
+                />
               ) : (
                 <span className="px-1 text-center font-body text-[0.6rem] uppercase tracking-wide text-ink/40">
-                  No photo
+                  No media
                 </span>
               )}
             </div>
 
             <div className="min-w-0 flex-1">
               <p className="font-body text-sm font-semibold text-ink">
-                {p.name}{" "}
-                <span className="font-normal text-ink/50">({p.slug})</span>
+                {p.name} <span className="font-normal text-ink/50">({p.slug})</span>
                 {p.visible !== 1 ? (
                   <span className="ml-2 rounded-sm bg-ink/10 px-1.5 py-0.5 font-body text-[0.65rem] uppercase tracking-wide text-ink/60">
                     Hidden
@@ -334,32 +520,66 @@ export function ProductsTab() {
               </p>
               <p className="mt-0.5 font-body text-xs text-ink/60">
                 {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order},{" "}
-                {p.category === "art" ? "art" : "wedding"}
+                {categories.find((c) => c.key === p.category)?.label ?? p.category}
+                {p.video_key ? " · has video" : ""}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => move(p, "up")} disabled={i === 0} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move ${p.name} up`}>
+              <button
+                type="button"
+                onClick={() => move(p, "up")}
+                disabled={i === 0}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move ${p.name} up`}
+              >
                 Up
               </button>
-              <button type="button" onClick={() => move(p, "down")} disabled={i === products.length - 1} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move ${p.name} down`}>
+              <button
+                type="button"
+                onClick={() => move(p, "down")}
+                disabled={i === products.length - 1}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move ${p.name} down`}
+              >
                 Down
               </button>
-              <button type="button" onClick={() => toggleVisible(p)} className={`${btn} border border-ink/25 text-ink`}>
+              <button
+                type="button"
+                onClick={() => toggleVisible(p)}
+                className={`${btn} border border-ink/25 text-ink`}
+              >
                 {p.visible === 1 ? "Hide" : "Show"}
               </button>
               <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
-                {uploadingId === p.id ? "Uploading..." : p.image_key ? "Replace photo" : "Upload photo"}
+                {uploading?.id === p.id && uploading.kind === "image"
+                  ? "Uploading..."
+                  : "Add photos"}
                 <input
-                  ref={(el) => {
-                    if (el) fileInputs.current.set(p.id, el);
-                  }}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length) void uploadPhotos(p.id, files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <label className={`${btn} cursor-pointer border border-ink/25 text-ink`}>
+                {uploading?.id === p.id && uploading.kind === "video"
+                  ? "Uploading..."
+                  : p.video_key
+                    ? "Replace video"
+                    : "Video"}
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
                   className="sr-only"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) void uploadImage(p, f);
+                    if (f) void uploadVideo(p.id, f);
                     e.target.value = "";
                   }}
                 />
@@ -368,13 +588,17 @@ export function ProductsTab() {
                 type="button"
                 onClick={() => {
                   setSaveError("");
-                  setDraft(draftFromProduct(p));
+                  setDraft(draftFromProduct(p, categories));
                 }}
                 className={`${btn} bg-ink text-beige`}
               >
                 Edit
               </button>
-              <button type="button" onClick={() => remove(p)} className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}>
+              <button
+                type="button"
+                onClick={() => remove(p)}
+                className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+              >
                 Delete
               </button>
             </div>
@@ -382,8 +606,67 @@ export function ProductsTab() {
         ))}
       </ul>
       <p className="mt-3 font-body text-xs text-ink/50">
-        Photos: JPEG, PNG or WebP, up to 5MB. Portrait 4:5 crops look best in the collection grid.
+        Photos: JPEG, PNG or WebP up to 5MB each — add as many as you like (the first is the cover;
+        the rest show on the order page). Video: MP4, WebM or MOV up to 50MB, kept short. When a
+        video is set it plays on the collection tile; otherwise the cover photo shows.
       </p>
+    </div>
+  );
+}
+
+// The single video slot: preview + upload + remove.
+function MediaBox({
+  keyValue,
+  uploading,
+  onPick,
+  onClear,
+}: {
+  keyValue: string | null;
+  uploading: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+}) {
+  const accept = "video/mp4,video/webm,video/quicktime";
+  return (
+    <div className="rounded-sm border border-ink/15 bg-panel/40 p-3">
+      <p className="font-body text-xs font-medium text-ink/70">Video clip</p>
+      <div className="mt-2 flex h-40 items-center justify-center overflow-hidden rounded-sm bg-panel">
+        {keyValue ? (
+          <video
+            src={`/img/${keyValue}`}
+            className="h-full w-full object-cover"
+            controls
+            muted
+            playsInline
+          />
+        ) : (
+          <span className="font-body text-xs uppercase tracking-wide text-ink/40">Not set</span>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <label className={`${btn} cursor-pointer bg-ink text-beige`}>
+          {uploading ? "Uploading..." : keyValue ? "Replace video" : "Upload video"}
+          <input
+            type="file"
+            accept={accept}
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {keyValue ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+          >
+            Remove
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

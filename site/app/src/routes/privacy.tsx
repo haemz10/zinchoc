@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PageHeader, PageShell, Prose } from "../components/site/PageShell";
+import { HiddenPageNotice, PageHeader, PageShell, Prose } from "../components/site/PageShell";
 import { SimpleMarkdown } from "../components/site/SimpleMarkdown";
 import { getLegalPageData } from "../lib/api/public.functions";
 
@@ -13,12 +13,16 @@ export const Route = createFileRoute("/privacy")({
   head: ({ loaderData }) => {
     const origin = loaderData?.origin ?? "";
     const title = "Privacy Policy | Zin Choc";
-    const description = "How Zin Choc collects, uses and protects your personal information, in line with the Australian Privacy Principles.";
+    const description =
+      "How Zin Choc collects, uses and protects your personal information, in line with the Australian Privacy Principles.";
     return {
       meta: [
         { title },
         { name: "description", content: description },
-        { name: "robots", content: "index, nofollow" },
+        {
+          name: "robots",
+          content: loaderData?.pagePublic === false ? "noindex, nofollow" : "index, nofollow",
+        },
         ...(origin ? [{ property: "og:url", content: `${origin}/privacy` }] : []),
       ],
       links: origin ? [{ rel: "canonical", href: `${origin}/privacy` }] : [],
@@ -40,9 +44,21 @@ function formatUpdated(value: string | null): string {
 }
 
 function PrivacyPage() {
-  const { settings, faqVisible, galleryVisible, page } = Route.useLoaderData();
+  const { settings, faqVisible, galleryVisible, page, isAdmin, pagePublic } = Route.useLoaderData();
+  if (!page) {
+    return (
+      <PageShell settings={settings} showFaq={faqVisible} showGallery={galleryVisible}>
+        <HiddenPageNotice />
+      </PageShell>
+    );
+  }
   return (
     <PageShell settings={settings} showFaq={faqVisible} showGallery={galleryVisible}>
+      {isAdmin && !pagePublic ? (
+        <p className="border-b border-gold/40 bg-gold/10 px-5 py-2.5 text-center font-body text-xs tracking-wide text-ink">
+          Visible to admins only. Publish this page from the admin Pages tab.
+        </p>
+      ) : null}
       <PageHeader
         title={page?.title ?? "Privacy Policy"}
         abn={settings.abn}

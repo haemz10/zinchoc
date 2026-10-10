@@ -7,6 +7,7 @@ import { createCheckoutSession, stripeEnabled } from "../stripe.server";
 import {
   getDb,
   getOrderByReference,
+  getProductImages,
   getSettings,
   getVisibleProductBySlug,
   getVisibleProducts,
@@ -52,10 +53,15 @@ export const getOrderPageData = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const [settings, products] = await Promise.all([getSettings(), getVisibleProducts()]);
     const product = data.piece ? await getVisibleProductBySlug(data.piece) : null;
+    // All photos for the chosen piece (cover first) for the order-page gallery.
+    const productImages = product
+      ? (await getProductImages(product.id)).map((i) => i.image_key)
+      : [];
     return {
       settings,
       products,
       product,
+      productImages,
       origin: requestOrigin(),
       dbReady: Boolean(getDb()),
       faqVisible: settings.faq_public === "1" || (await isAdminSession()),
@@ -202,7 +208,7 @@ export const createStripeCheckout = createServerFn({ method: "POST" })
       return { ok: false, error: "Card payment is not available." };
     }
     const order = await getOrderByReference(data.reference);
-    if (!order || order.status !== "pending_payment") {
+    if (!order || order.deleted_at || order.status !== "pending_payment") {
       return { ok: false, error: "This order is not awaiting payment." };
     }
     const result = await createCheckoutSession(order, requestOrigin());
@@ -221,20 +227,24 @@ export const getThankYouData = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const settings = await getSettings();
     const order = data.ref ? await getOrderByReference(data.ref) : null;
-    // Public page: expose only non-sensitive order fields.
+    // Public page: expose only non-sensitive order fields. A deleted order is
+    // treated as not found.
     return {
       settings,
+      origin: requestOrigin(),
+      stripeEnabled: await stripeEnabled(),
       faqVisible: settings.faq_public === "1" || (await isAdminSession()),
       galleryVisible: settings.show_gallery === "1" || (await isAdminSession()),
-      order: order
-        ? {
-            reference: order.reference,
-            product_name: order.product_name,
-            quantity: order.quantity,
-            total_cents: order.total_cents,
-            status: order.status,
-            payment_method: order.payment_method,
-          }
-        : null,
+      order:
+        order && !order.deleted_at
+          ? {
+              reference: order.reference,
+              product_name: order.product_name,
+              quantity: order.quantity,
+              total_cents: order.total_cents,
+              status: order.status,
+              payment_method: order.payment_method,
+            }
+          : null,
     };
   });

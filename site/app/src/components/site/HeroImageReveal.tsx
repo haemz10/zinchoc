@@ -11,13 +11,7 @@ import { SecondaryCta } from "./SecondaryCta";
 // small screens get the static full-bleed hero. No pinning, so a full-page
 // screenshot never shows a blank band.
 
-export function HeroImageReveal({
-  imageSrc,
-  settings,
-}: {
-  imageSrc: string;
-  settings: Settings;
-}) {
+export function HeroImageReveal({ imageSrc, settings }: { imageSrc: string; settings: Settings }) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [inset, setInset] = useState(0); // 0 = full bleed; static-safe default
 
@@ -70,7 +64,7 @@ export function HeroImageReveal({
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16">
         <p className="font-body text-xs uppercase tracking-[0.3em] text-beige/80">
-          Wedding bomboniere, made in Australia
+          {settings.hero_kicker}
         </p>
         <h1 className="mt-4 max-w-2xl font-display text-4xl leading-[1.05] text-beige md:text-6xl">
           {settings.hero_headline}

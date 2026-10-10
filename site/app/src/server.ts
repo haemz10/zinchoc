@@ -41,8 +41,20 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
-      // Trailing-slash normalization: /faq/ 301s to /faq (single canonical URL).
       const url = new URL(request.url);
+
+      // This deployment has moved: the site now lives at zinchoc.higgsfield.app.
+      // Permanent redirect (301) preserves paths and tells search engines the
+      // new canonical home. The hostname guard prevents any loop if this code
+      // ever runs on the new host.
+      if (url.hostname !== "zinchoc.higgsfield.app") {
+        const target = `https://zinchoc.higgsfield.app${url.pathname}${url.search}`;
+        return applySecurityHeaders(
+          new Response(null, { status: 301, headers: { Location: target } }),
+        );
+      }
+
+      // Trailing-slash normalization: /faq/ 301s to /faq (single canonical URL).
       if (url.pathname !== "/" && url.pathname.endsWith("/")) {
         url.pathname = url.pathname.replace(/\/+$/, "");
         return applySecurityHeaders(

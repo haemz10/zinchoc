@@ -93,9 +93,7 @@ export function AppForm({
           <div className="flex items-center justify-between gap-2">{modeToggle}</div>
         ) : null}
 
-        {settings ? (
-          <div className="flex flex-wrap items-center gap-2">{settings}</div>
-        ) : null}
+        {settings ? <div className="flex flex-wrap items-center gap-2">{settings}</div> : null}
 
         <div className="flex min-w-0 flex-row gap-2">
           {submitAccessory}
@@ -104,9 +102,7 @@ export function AppForm({
             variant="marketingPrimary"
             size="md"
             disabled={disabled || busy}
-            start={
-              busy ? <Loader size="xs" color="neutral" aria-label="Working" /> : undefined
-            }
+            start={busy ? <Loader size="xs" color="neutral" aria-label="Working" /> : undefined}
             className="w-full min-w-0"
           >
             {submitLabel}
@@ -120,9 +116,7 @@ export function AppForm({
         </div>
 
         {helperText ? (
-          <p className="text-center text-q-body-sm-regular text-q-text-secondary">
-            {helperText}
-          </p>
+          <p className="text-center text-q-body-sm-regular text-q-text-secondary">{helperText}</p>
         ) : null}
       </div>
     </form>

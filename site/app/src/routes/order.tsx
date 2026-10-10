@@ -3,13 +3,14 @@ import { useState } from "react";
 
 import { SiteFooter } from "../components/site/SiteFooter";
 import { SiteHeader } from "../components/site/SiteHeader";
+import { StripeCardCta } from "../components/site/StripeCardCta";
 import {
-  createStripeCheckout,
   getOrderPageData,
   recordPaymentMethod,
   submitOrder,
   type SubmitOrderResult,
 } from "../lib/api/order.functions";
+import { cardPaymentLink } from "../lib/payments";
 import { formatAud, type Product, type Settings } from "../lib/types";
 
 // The order page: choose a piece, place the order (server-validated, minimum
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/order")({
       { title: "Order | Zin Choc" },
       {
         name: "description",
-        content: "Place an order for Zin Choc handcrafted wedding chocolate bomboniere.",
+        content: "Place an order for Zin Choc handcrafted artisan chocolate catering.",
       },
       { name: "robots", content: "noindex, follow" },
     ],
@@ -46,8 +47,17 @@ const errorClass = "mt-1 font-body text-sm text-[#8a2f2f]";
 type Placed = Extract<SubmitOrderResult, { ok: true }>;
 
 function OrderPage() {
-  const { settings, products, product, origin, dbReady, faqVisible, galleryVisible, stripeEnabled } =
-    Route.useLoaderData();
+  const {
+    settings,
+    products,
+    product,
+    productImages,
+    origin,
+    dbReady,
+    faqVisible,
+    galleryVisible,
+    stripeEnabled,
+  } = Route.useLoaderData();
 
   return (
     <>
@@ -57,6 +67,7 @@ function OrderPage() {
           {product ? (
             <OrderFlow
               product={product}
+              productImages={productImages}
               settings={settings}
               origin={origin}
               dbReady={dbReady}
@@ -97,9 +108,20 @@ function PieceChooser({ products }: { products: Product[] }) {
                   {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order}
                 </span>
               </span>
-              <svg viewBox="0 0 32 12" aria-hidden="true" className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5">
+              <svg
+                viewBox="0 0 32 12"
+                aria-hidden="true"
+                className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5"
+              >
                 <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1" />
-                <path d="M24 1 L30 6 L24 11" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M24 1 L30 6 L24 11"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </a>
           </li>
@@ -115,14 +137,125 @@ function PieceChooser({ products }: { products: Product[] }) {
   );
 }
 
+// Product photo gallery for the order page: a large active image with a
+// thumbnail strip when there is more than one. Client-only interactivity.
+function ProductGallery({ images, name }: { images: string[]; name: string }) {
+  const [active, setActive] = useState(0);
+  const count = images.length;
+  const idx = Math.min(active, count - 1);
+  const current = images[idx];
+  const go = (delta: number) =>
+    setActive((a) => {
+      const n = Math.min(a, count - 1);
+      return (n + delta + count) % count;
+    });
+  return (
+    <div className="mb-6">
+      <div
+        className="group relative"
+        tabIndex={count > 1 ? 0 : -1}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label={`${name} photos`}
+        onKeyDown={(e) => {
+          if (count < 2) return;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(-1);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(1);
+          }
+        }}
+      >
+        <img
+          src={`/img/${current}`}
+          alt={`${name}, a Zin Choc piece (photo ${idx + 1} of ${count})`}
+          className="aspect-[4/5] w-full rounded-sm object-cover"
+        />
+        {count > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Previous photo"
+              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Next photo"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+            <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 font-body text-xs tabular-nums text-beige">
+              {idx + 1} / {count}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {count > 1 ? (
+        <div className="mt-3 grid grid-cols-5 gap-2">
+          {images.map((key, i) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={`Show photo ${i + 1} of ${count}`}
+              aria-current={i === idx ? "true" : undefined}
+              className={`overflow-hidden rounded-sm border ${
+                i === idx ? "border-gold" : "border-transparent"
+              }`}
+            >
+              <img
+                src={`/img/${key}`}
+                alt=""
+                className="aspect-square w-full object-cover"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function OrderFlow({
   product,
+  productImages,
   settings,
   origin,
   dbReady,
   stripeEnabled,
 }: {
   product: Product;
+  productImages: string[];
   settings: Settings;
   origin: string;
   dbReady: boolean;
@@ -144,8 +277,10 @@ function OrderFlow({
   return (
     <OrderForm
       product={product}
+      productImages={productImages}
       dbReady={dbReady}
       notesHint={settings.order_notes_hint}
+      leadTime={settings.lead_time_text}
       onPlaced={setPlaced}
     />
   );
@@ -153,13 +288,17 @@ function OrderFlow({
 
 function OrderForm({
   product,
+  productImages,
   dbReady,
   notesHint,
+  leadTime,
   onPlaced,
 }: {
   product: Product;
+  productImages: string[];
   dbReady: boolean;
   notesHint: string;
+  leadTime: string;
   onPlaced: (p: Placed) => void;
 }) {
   const [quantity, setQuantity] = useState(product.min_order);
@@ -235,6 +374,9 @@ function OrderForm({
     <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
       {/* Product summary */}
       <aside>
+        {productImages.length > 0 ? (
+          <ProductGallery images={productImages} name={product.name} />
+        ) : null}
         <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your order</p>
         <h1 className="mt-3 font-display text-3xl leading-tight text-ink md:text-4xl">
           {product.name}
@@ -255,7 +397,7 @@ function OrderForm({
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-ink/60">Lead time</dt>
-            <dd className="text-ink">4 to 6 weeks from design approval</dd>
+            <dd className="text-ink">{leadTime}</dd>
           </div>
         </dl>
         <p className="mt-4 max-w-md font-body text-xs leading-relaxed text-ink/55">
@@ -603,7 +745,7 @@ function PaymentStep({
               <strong>{placed.reference}</strong> in the payment description.
             </p>
             <a
-              href={settings.stripe_payment_link}
+              href={cardPaymentLink(settings.stripe_payment_link, placed.reference)}
               target="_blank"
               rel="noreferrer noopener"
               onClick={() => choose("card_link")}
@@ -645,7 +787,9 @@ function PaymentStep({
                 onClick={() => choose("bank_transfer")}
                 className="mt-3 inline-flex items-center rounded-sm border border-ink/25 px-4 py-2 font-body text-xs font-medium text-ink transition-transform active:scale-[0.98]"
               >
-                {chosen === "bank_transfer" ? "Noted, paying by transfer" : "I will pay by transfer"}
+                {chosen === "bank_transfer"
+                  ? "Noted, paying by transfer"
+                  : "I will pay by transfer"}
               </button>
             </>
           ) : (
@@ -677,56 +821,6 @@ function PaymentStep({
       >
         Continue to your order confirmation
       </a>
-    </div>
-  );
-}
-
-// "Pay by card" (Stripe Checkout): its own garment, distinct from the gold
-// PayPal seal and the ink Place-order bar: an ink-framed button whose frame
-// fills from the left with ink on hover, label swapping to beige, with a
-// composed loading state while the checkout session is created.
-function StripeCardCta({ reference, totalCents }: { reference: string; totalCents: number }) {
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function pay() {
-    setState("loading");
-    setMessage("");
-    try {
-      const result = await createStripeCheckout({ data: { reference } });
-      if (result.ok) {
-        window.location.href = result.url;
-      } else {
-        setState("error");
-        setMessage(result.error);
-      }
-    } catch {
-      setState("error");
-      setMessage("Card payment is temporarily unavailable, please choose another method.");
-    }
-  }
-
-  return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={pay}
-        disabled={state === "loading"}
-        className="group relative inline-flex items-center overflow-hidden rounded-sm border border-ink px-6 py-3 font-body text-sm font-semibold text-ink transition-colors duration-300 hover:text-beige active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-      >
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-300 ease-out group-hover:scale-x-100"
-        />
-        <span className="relative z-10">
-          {state === "loading"
-            ? "Opening secure checkout..."
-            : `Pay ${formatAud(totalCents)} by card`}
-        </span>
-      </button>
-      {state === "error" && message ? (
-        <p className="mt-2 font-body text-sm text-[#8a2f2f]">{message}</p>
-      ) : null}
     </div>
   );
 }
