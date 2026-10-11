@@ -33,6 +33,8 @@ export function ProductTile({
           loop
           playsInline
           preload="metadata"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
         />
       ) : product.image_key ? (
         <img

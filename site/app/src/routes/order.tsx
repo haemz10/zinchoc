@@ -190,12 +190,14 @@ function ProductGallery({
             key={current.key}
             src={`/img/${current.key}`}
             className="aspect-[4/5] w-full rounded-sm bg-ink object-cover"
-            controls
             autoPlay
             muted
             loop
             playsInline
             preload="metadata"
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
+            onContextMenu={(e) => e.preventDefault()}
           />
         ) : (
           <img
@@ -271,6 +273,8 @@ function ProductGallery({
                     muted
                     playsInline
                     preload="metadata"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
                   />
                   <span className="absolute inset-0 flex items-center justify-center">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink/70">
