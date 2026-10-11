@@ -42,7 +42,7 @@ function validate(f: Fields): Record<string, string> {
   if (!f.email.trim()) e.email = "Please enter your email address.";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))
     e.email = "Please enter a valid email address.";
-  if (!f.message.trim()) e.message = "Please add a short note about your day.";
+  if (!f.message.trim()) e.message = "Please add a short note about what you're planning.";
   if (!f.consent) e.consent = "Please agree to the privacy policy so we can reply.";
   return e;
 }
@@ -102,13 +102,14 @@ export function EnquirySection({
     <section id="enquiry" className="scroll-mt-24 bg-panel">
       <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
         <div className="max-w-2xl">
-          <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your enquiry</p>
+          <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">
+            {settings.enquiry_kicker}
+          </p>
           <h2 className="mt-4 font-display text-3xl leading-tight text-ink md:text-5xl">
-            Begin with a conversation
+            {settings.enquiry_heading}
           </h2>
           <p className="mt-5 font-body text-base leading-relaxed text-ink/75">
-            Tell us about your day. We reply within two business days, and every enquiry is read by
-            the person who will make your pieces.
+            {settings.enquiry_intro}
           </p>
         </div>
 
@@ -120,12 +121,15 @@ export function EnquirySection({
                 <h3 className="font-display text-2xl text-ink">Thank you, your enquiry is in.</h3>
                 <p className="mt-4 font-body text-base leading-relaxed text-ink/75">
                   We have received your note and will reply within two business days. From there we
-                  arrange a tasting, prepare a design proposal, and once you approve it a 50% deposit
-                  secures your date.
+                  arrange a tasting, prepare a design proposal, and once you approve it a 50%
+                  deposit secures your date.
                 </p>
                 <p className="mt-4 font-body text-base leading-relaxed text-ink/75">
-                  If your wedding is close, feel free to email us directly at{" "}
-                  <a href={`mailto:${settings.contact_email}`} className="text-ink underline decoration-gold underline-offset-4">
+                  If your event is soon, feel free to email us directly at{" "}
+                  <a
+                    href={`mailto:${settings.contact_email}`}
+                    className="text-ink underline decoration-gold underline-offset-4"
+                  >
                     {settings.contact_email}
                   </a>
                   .
@@ -210,7 +214,7 @@ export function EnquirySection({
 
                   <div>
                     <label htmlFor="f-date" className={labelClass}>
-                      Wedding date <span className="text-ink/45">(optional)</span>
+                      Event date <span className="text-ink/45">(optional)</span>
                     </label>
                     <input
                       id="f-date"
@@ -262,7 +266,7 @@ export function EnquirySection({
 
                 <div>
                   <label htmlFor="f-message" className={labelClass}>
-                    Tell us about your day
+                    Tell us what you're planning
                   </label>
                   <textarea
                     id="f-message"
@@ -310,9 +314,12 @@ export function EnquirySection({
                       className="mt-1 h-4 w-4 shrink-0 accent-gold"
                     />
                     <span className="font-body text-sm leading-relaxed text-ink/75">
-                      I agree that Zin Choc may use the details above to respond to my enquiry, as
-                      described in the{" "}
-                      <a href="/privacy" className="text-ink underline decoration-gold underline-offset-4">
+                      I agree that the details I provide may be collected and used to respond to my
+                      enquiry, as described in the{" "}
+                      <a
+                        href="/privacy"
+                        className="text-ink underline decoration-gold underline-offset-4"
+                      >
                         privacy policy
                       </a>
                       .
@@ -333,7 +340,13 @@ export function EnquirySection({
                 >
                   {status === "submitting" ? (
                     <>
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <circle cx="12" cy="12" r="9" className="opacity-25" />
                         <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
                       </svg>
@@ -352,8 +365,7 @@ export function EnquirySection({
             <h3 className="font-display text-xl text-ink">How payment works</h3>
             <ul className="mt-5 space-y-4 font-body text-sm leading-relaxed text-ink/75">
               <li className="border-l-2 border-gold/50 pl-4">
-                A 50% deposit invoice, sent by email, secures your wedding date once you approve the
-                design.
+                A 50% deposit invoice, sent by email, secures your date once you approve the design.
               </li>
               <li className="border-l-2 border-gold/50 pl-4">
                 The balance is due two weeks before delivery.

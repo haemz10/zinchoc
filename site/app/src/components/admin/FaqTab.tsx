@@ -172,13 +172,29 @@ export function FaqTab() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => move(item, "up")} disabled={i === 0} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move "${item.question}" up`}>
+              <button
+                type="button"
+                onClick={() => move(item, "up")}
+                disabled={i === 0}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move "${item.question}" up`}
+              >
                 Up
               </button>
-              <button type="button" onClick={() => move(item, "down")} disabled={i === items.length - 1} className={`${btn} border border-ink/25 text-ink disabled:opacity-30`} aria-label={`Move "${item.question}" down`}>
+              <button
+                type="button"
+                onClick={() => move(item, "down")}
+                disabled={i === items.length - 1}
+                className={`${btn} border border-ink/25 text-ink disabled:opacity-30`}
+                aria-label={`Move "${item.question}" down`}
+              >
                 Down
               </button>
-              <button type="button" onClick={() => toggleVisible(item)} className={`${btn} border border-ink/25 text-ink`}>
+              <button
+                type="button"
+                onClick={() => toggleVisible(item)}
+                className={`${btn} border border-ink/25 text-ink`}
+              >
                 {item.visible === 1 ? "Hide" : "Show"}
               </button>
               <button
@@ -191,7 +207,11 @@ export function FaqTab() {
               >
                 Edit
               </button>
-              <button type="button" onClick={() => remove(item)} className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}>
+              <button
+                type="button"
+                onClick={() => remove(item)}
+                className={`${btn} border border-[#8a2f2f]/40 text-[#8a2f2f]`}
+              >
                 Delete
               </button>
             </div>

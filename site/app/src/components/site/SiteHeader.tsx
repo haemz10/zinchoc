@@ -82,7 +82,13 @@ export function SiteHeader({
             aria-label={open ? "Close menu" : "Open menu"}
             className="inline-flex h-10 w-10 items-center justify-center text-ink md:hidden"
           >
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               {open ? (
                 <path d="M6 6 L18 18 M18 6 L6 18" strokeLinecap="round" />
               ) : (

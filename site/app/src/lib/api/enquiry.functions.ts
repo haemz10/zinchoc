@@ -14,7 +14,11 @@ const EnquirySchema = z.object({
   event_date: z.string().trim().max(40).optional().default(""),
   guest_count: z.string().trim().max(20).optional().default(""),
   product_slug: z.string().trim().max(120).optional().default(""),
-  message: z.string().trim().min(1, "Please add a short note about your day.").max(4000),
+  message: z
+    .string()
+    .trim()
+    .min(1, "Please add a short note about what you're planning.")
+    .max(4000),
   consent: z.boolean(),
   // Honeypot: real people leave this empty.
   company: z.string().optional().default(""),

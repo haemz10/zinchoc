@@ -101,9 +101,7 @@ export function StepperLayout({
                   disabled={!reachable}
                   aria-current={current ? "step" : undefined}
                   onClick={
-                    reachable && !current && onStepChange
-                      ? () => onStepChange(index)
-                      : undefined
+                    reachable && !current && onStepChange ? () => onStepChange(index) : undefined
                   }
                   className={cn(
                     "flex items-center gap-2",

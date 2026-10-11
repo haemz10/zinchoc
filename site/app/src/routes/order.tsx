@@ -3,13 +3,14 @@ import { useState } from "react";
 
 import { SiteFooter } from "../components/site/SiteFooter";
 import { SiteHeader } from "../components/site/SiteHeader";
+import { StripeCardCta } from "../components/site/StripeCardCta";
 import {
-  createStripeCheckout,
   getOrderPageData,
   recordPaymentMethod,
   submitOrder,
   type SubmitOrderResult,
 } from "../lib/api/order.functions";
+import { cardPaymentLink } from "../lib/payments";
 import { formatAud, type Product, type Settings } from "../lib/types";
 
 // The order page: choose a piece, place the order (server-validated, minimum
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/order")({
       { title: "Order | Zin Choc" },
       {
         name: "description",
-        content: "Place an order for Zin Choc handcrafted wedding chocolate bomboniere.",
+        content: "Place an order for Zin Choc handcrafted artisan chocolate catering.",
       },
       { name: "robots", content: "noindex, follow" },
     ],
@@ -46,8 +47,17 @@ const errorClass = "mt-1 font-body text-sm text-[#8a2f2f]";
 type Placed = Extract<SubmitOrderResult, { ok: true }>;
 
 function OrderPage() {
-  const { settings, products, product, origin, dbReady, faqVisible, galleryVisible, stripeEnabled } =
-    Route.useLoaderData();
+  const {
+    settings,
+    products,
+    product,
+    productImages,
+    origin,
+    dbReady,
+    faqVisible,
+    galleryVisible,
+    stripeEnabled,
+  } = Route.useLoaderData();
 
   return (
     <>
@@ -57,6 +67,7 @@ function OrderPage() {
           {product ? (
             <OrderFlow
               product={product}
+              productImages={productImages}
               settings={settings}
               origin={origin}
               dbReady={dbReady}
@@ -97,9 +108,20 @@ function PieceChooser({ products }: { products: Product[] }) {
                   {formatAud(p.price_cents)} {p.unit}, minimum {p.min_order}
                 </span>
               </span>
-              <svg viewBox="0 0 32 12" aria-hidden="true" className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5">
+              <svg
+                viewBox="0 0 32 12"
+                aria-hidden="true"
+                className="h-3 w-8 shrink-0 overflow-visible text-silver transition-transform duration-300 group-hover:translate-x-1.5"
+              >
                 <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1" />
-                <path d="M24 1 L30 6 L24 11" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M24 1 L30 6 L24 11"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </a>
           </li>
@@ -109,20 +131,245 @@ function PieceChooser({ products }: { products: Product[] }) {
         href="/#enquiry"
         className="mt-8 inline-block font-body text-sm text-ink underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
       >
-        Prefer to talk first? Tell us about your day.
+        Prefer to talk first? Tell us what you're planning.
       </a>
+    </div>
+  );
+}
+
+// Product photo gallery for the order page: a large active image with a
+// thumbnail strip when there is more than one. Client-only interactivity.
+type Media = { type: "image" | "video"; key: string };
+
+function ProductGallery({
+  images,
+  videoKey,
+  name,
+}: {
+  images: string[];
+  videoKey: string | null;
+  name: string;
+}) {
+  // Photos first, then the clip as an extra slide. A product with only a video
+  // still gets a gallery.
+  const media: Media[] = [
+    ...images.map((key) => ({ type: "image" as const, key })),
+    ...(videoKey ? [{ type: "video" as const, key: videoKey }] : []),
+  ];
+  const [active, setActive] = useState(0);
+  const count = media.length;
+  const idx = Math.min(active, count - 1);
+  const current = media[idx];
+  const go = (delta: number) =>
+    setActive((a) => {
+      const n = Math.min(a, count - 1);
+      return (n + delta + count) % count;
+    });
+  if (count === 0) return null;
+  return (
+    <div className="mb-6">
+      <div
+        className="group relative"
+        tabIndex={count > 1 ? 0 : -1}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label={`${name} photos and video`}
+        onKeyDown={(e) => {
+          if (count < 2) return;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(-1);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(1);
+          }
+        }}
+      >
+        {current.type === "video" ? (
+          <video
+            key={current.key}
+            src={`/img/${current.key}`}
+            className="aspect-[4/5] w-full rounded-sm bg-ink object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        ) : (
+          <img
+            src={`/img/${current.key}`}
+            alt={`${name}, a Zin Choc piece (${idx + 1} of ${count})`}
+            className="aspect-[4/5] w-full rounded-sm object-cover"
+          />
+        )}
+        {count > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Previous"
+              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Next"
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+            <span className="absolute right-2 top-2 rounded-full bg-ink/70 px-2 py-0.5 font-body text-xs tabular-nums text-beige">
+              {idx + 1} / {count}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {count > 1 ? (
+        <div className="mt-3 grid grid-cols-5 gap-2">
+          {media.map((m, i) => (
+            <button
+              key={`${m.type}-${m.key}`}
+              type="button"
+              onClick={() => setActive(i)}
+              aria-label={m.type === "video" ? "Show the video" : `Show photo ${i + 1} of ${count}`}
+              aria-current={i === idx ? "true" : undefined}
+              className={`relative overflow-hidden rounded-sm border ${
+                i === idx ? "border-gold" : "border-transparent"
+              }`}
+            >
+              {m.type === "video" ? (
+                <>
+                  <video
+                    src={`/img/${m.key}`}
+                    className="aspect-square w-full bg-ink object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink/70">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3 text-beige" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <img
+                  src={`/img/${m.key}`}
+                  alt=""
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Parse the product's detail text into expandable sections: each block's first
+// line is the toggle title, the rest is its body, blocks separated by a blank
+// line. Minimal accordion on silver hairlines, in keeping with the brand.
+function parseSections(text: string): { title: string; body: string }[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => {
+      const lines = block.trim().split("\n");
+      return { title: lines[0]?.trim() ?? "", body: lines.slice(1).join("\n").trim() };
+    })
+    .filter((s) => s.title.length > 0);
+}
+
+function ProductDetails({ details }: { details: string }) {
+  const sections = parseSections(details || "");
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  if (sections.length === 0) return null;
+  return (
+    <div className="mt-8 max-w-md border-t border-silver/50">
+      {sections.map((s, i) => {
+        const isOpen = Boolean(open[i]);
+        return (
+          <div key={i} className="border-b border-silver/50">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
+              className="flex w-full items-center justify-between gap-4 py-4 text-left font-body text-sm font-medium tracking-wide text-ink transition-colors hover:text-gold"
+            >
+              <span>{s.title}</span>
+              <svg
+                viewBox="0 0 24 24"
+                className={`h-4 w-4 shrink-0 text-ink/50 transition-transform duration-200 ${
+                  isOpen ? "rotate-45" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14 M5 12h14" />
+              </svg>
+            </button>
+            {isOpen ? (
+              <div className="pb-5 font-body text-sm leading-relaxed text-ink/70">
+                {s.body.split(/\n+/).map((para, j) => (
+                  <p key={j} className={j === 0 ? "" : "mt-3"}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function OrderFlow({
   product,
+  productImages,
   settings,
   origin,
   dbReady,
   stripeEnabled,
 }: {
   product: Product;
+  productImages: string[];
   settings: Settings;
   origin: string;
   dbReady: boolean;
@@ -144,8 +391,10 @@ function OrderFlow({
   return (
     <OrderForm
       product={product}
+      productImages={productImages}
       dbReady={dbReady}
       notesHint={settings.order_notes_hint}
+      leadTime={settings.lead_time_text}
       onPlaced={setPlaced}
     />
   );
@@ -153,13 +402,17 @@ function OrderFlow({
 
 function OrderForm({
   product,
+  productImages,
   dbReady,
   notesHint,
+  leadTime,
   onPlaced,
 }: {
   product: Product;
+  productImages: string[];
   dbReady: boolean;
   notesHint: string;
+  leadTime: string;
   onPlaced: (p: Placed) => void;
 }) {
   const [quantity, setQuantity] = useState(product.min_order);
@@ -235,6 +488,9 @@ function OrderForm({
     <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
       {/* Product summary */}
       <aside>
+        {productImages.length > 0 || product.video_key ? (
+          <ProductGallery images={productImages} videoKey={product.video_key} name={product.name} />
+        ) : null}
         <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your order</p>
         <h1 className="mt-3 font-display text-3xl leading-tight text-ink md:text-4xl">
           {product.name}
@@ -255,13 +511,14 @@ function OrderForm({
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-ink/60">Lead time</dt>
-            <dd className="text-ink">4 to 6 weeks from design approval</dd>
+            <dd className="text-ink">{leadTime}</dd>
           </div>
         </dl>
         <p className="mt-4 max-w-md font-body text-xs leading-relaxed text-ink/55">
           Prices are in Australian dollars and include GST. Delivery is quoted separately once we
           confirm your date and address.
         </p>
+        <ProductDetails details={product.details} />
       </aside>
 
       {/* Order form */}
@@ -320,8 +577,7 @@ function OrderForm({
           </div>
           {errors.quantity ? <p className={errorClass}>{errors.quantity}</p> : null}
           <p className="mt-2 font-body text-xs text-ink/55">
-            Minimum {product.min_order}. Need a different quantity for an intimate wedding? Send an
-            enquiry instead.
+            Minimum {product.min_order}. Need a different quantity? Send an enquiry instead.
           </p>
         </div>
 
@@ -383,7 +639,7 @@ function OrderForm({
           </div>
           <div>
             <label htmlFor="o-date" className={labelClass}>
-              Wedding or event date <span className="text-ink/45">(optional)</span>
+              Event date <span className="text-ink/45">(optional)</span>
             </label>
             <input
               id="o-date"
@@ -454,8 +710,8 @@ function OrderForm({
               className="mt-1 h-4 w-4 shrink-0 accent-gold"
             />
             <span className="font-body text-sm leading-relaxed text-ink/75">
-              I agree that Zin Choc may use the details above to process my order, as described in
-              the{" "}
+              I agree that the details I provide may be collected and used to process my order, as
+              described in the{" "}
               <a href="/privacy" className="text-ink underline decoration-gold underline-offset-4">
                 privacy policy
               </a>
@@ -603,7 +859,7 @@ function PaymentStep({
               <strong>{placed.reference}</strong> in the payment description.
             </p>
             <a
-              href={settings.stripe_payment_link}
+              href={cardPaymentLink(settings.stripe_payment_link, placed.reference)}
               target="_blank"
               rel="noreferrer noopener"
               onClick={() => choose("card_link")}
@@ -645,7 +901,9 @@ function PaymentStep({
                 onClick={() => choose("bank_transfer")}
                 className="mt-3 inline-flex items-center rounded-sm border border-ink/25 px-4 py-2 font-body text-xs font-medium text-ink transition-transform active:scale-[0.98]"
               >
-                {chosen === "bank_transfer" ? "Noted, paying by transfer" : "I will pay by transfer"}
+                {chosen === "bank_transfer"
+                  ? "Noted, paying by transfer"
+                  : "I will pay by transfer"}
               </button>
             </>
           ) : (
@@ -677,56 +935,6 @@ function PaymentStep({
       >
         Continue to your order confirmation
       </a>
-    </div>
-  );
-}
-
-// "Pay by card" (Stripe Checkout): its own garment, distinct from the gold
-// PayPal seal and the ink Place-order bar: an ink-framed button whose frame
-// fills from the left with ink on hover, label swapping to beige, with a
-// composed loading state while the checkout session is created.
-function StripeCardCta({ reference, totalCents }: { reference: string; totalCents: number }) {
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function pay() {
-    setState("loading");
-    setMessage("");
-    try {
-      const result = await createStripeCheckout({ data: { reference } });
-      if (result.ok) {
-        window.location.href = result.url;
-      } else {
-        setState("error");
-        setMessage(result.error);
-      }
-    } catch {
-      setState("error");
-      setMessage("Card payment is temporarily unavailable, please choose another method.");
-    }
-  }
-
-  return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={pay}
-        disabled={state === "loading"}
-        className="group relative inline-flex items-center overflow-hidden rounded-sm border border-ink px-6 py-3 font-body text-sm font-semibold text-ink transition-colors duration-300 hover:text-beige active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-      >
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-300 ease-out group-hover:scale-x-100"
-        />
-        <span className="relative z-10">
-          {state === "loading"
-            ? "Opening secure checkout..."
-            : `Pay ${formatAud(totalCents)} by card`}
-        </span>
-      </button>
-      {state === "error" && message ? (
-        <p className="mt-2 font-body text-sm text-[#8a2f2f]">{message}</p>
-      ) : null}
     </div>
   );
 }

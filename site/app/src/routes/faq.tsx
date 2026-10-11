@@ -15,7 +15,7 @@ export const Route = createFileRoute("/faq")({
     const origin = loaderData?.origin ?? "";
     const title = "Questions | Zin Choc";
     const description =
-      "Allergens, dietary options, lead times, delivery, storage, payment terms and more for Zin Choc wedding chocolate bomboniere.";
+      "Allergens, dietary options, lead times, delivery, storage, payment terms and more for Zin Choc artisan chocolate catering.";
     return {
       meta: [
         { title },
@@ -49,7 +49,7 @@ function FaqPage() {
             href="/#enquiry"
             className="mt-8 inline-block font-body text-sm text-ink underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
           >
-            Tell us about your day
+            Tell us what you're planning
           </a>
         </div>
       </PageShell>

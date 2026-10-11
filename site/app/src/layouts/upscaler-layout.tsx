@@ -124,18 +124,14 @@ export function UpscalerLayout({
                 ) : null}
               </div>
               {toolbar ? (
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {toolbar}
-                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">{toolbar}</div>
               ) : null}
             </>
           ) : (
             <div className="flex min-h-96 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-q-border-default bg-q-background-secondary p-8 text-center">
               {example}
               <h1 className="text-q-title-lg-semi-bold uppercase tracking-wide">{title}</h1>
-              <p className="max-w-96 text-q-body-sm-regular text-q-text-secondary">
-                {description}
-              </p>
+              <p className="max-w-96 text-q-body-sm-regular text-q-text-secondary">{description}</p>
               <Button variant="tertiary" size="md" onClick={onUpload}>
                 {uploadLabel}
               </Button>
@@ -163,9 +159,7 @@ export function UpscalerLayout({
                 size="md"
                 className="w-full"
                 disabled={submitDisabled || busy}
-                start={
-                  busy ? <Loader size="xs" color="neutral" aria-label="Working" /> : undefined
-                }
+                start={busy ? <Loader size="xs" color="neutral" aria-label="Working" /> : undefined}
                 onClick={onSubmit}
               >
                 {submitLabel}
