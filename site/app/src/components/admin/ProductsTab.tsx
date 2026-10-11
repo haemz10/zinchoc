@@ -30,6 +30,7 @@ type Draft = {
   sort: string;
   visible: boolean;
   category: string;
+  details: string;
   video_key: string | null;
 };
 
@@ -45,6 +46,7 @@ const EMPTY_DRAFT: Draft = {
   sort: "0",
   visible: true,
   category: "",
+  details: "",
   video_key: null,
 };
 
@@ -67,6 +69,7 @@ function draftFromProduct(p: Product, categories: Category[]): Draft {
     category: categories.some((c) => c.key === p.category)
       ? p.category
       : (categories[0]?.key ?? p.category),
+    details: p.details,
     video_key: p.video_key,
   };
 }
@@ -81,6 +84,7 @@ export function ProductsTab() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<{ id: number; kind: "image" | "video" } | null>(null);
   const [uploadError, setUploadError] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -142,6 +146,7 @@ export function ProductsTab() {
           sort: Number.parseInt(draft.sort || "0", 10) || 0,
           visible: draft.visible,
           category: draft.category || categories[0]?.key || "premium",
+          details: draft.details,
         },
       });
       if (res.ok) {
@@ -190,8 +195,8 @@ export function ProductsTab() {
     if (!json.ok) throw new Error(json.error ?? "Upload failed.");
   }
 
-  // Upload one or more photos (multi-select allowed), sequentially.
-  async function uploadPhotos(id: number, files: FileList) {
+  // Upload one or more photos (multi-select or drag & drop), sequentially.
+  async function uploadPhotos(id: number, files: FileList | File[]) {
     setUploadError("");
     setUploading({ id, kind: "image" });
     try {
@@ -378,6 +383,24 @@ export function ProductsTab() {
               />
               <span className="font-body text-sm text-ink/80">Visible on the public site</span>
             </label>
+            <label className="block sm:col-span-2">
+              <span className="font-body text-xs font-medium text-ink/70">
+                Detail sections (the expandable toggles on the product page)
+              </span>
+              <textarea
+                rows={8}
+                value={draft.details}
+                onChange={(e) => setDraft({ ...draft, details: e.target.value })}
+                placeholder={
+                  "Ingredients & allergens\nFine couverture chocolate...\n\nStorage & care\nKeep cool and dry..."
+                }
+                className={`mt-1 ${field} resize-y`}
+              />
+              <span className="mt-1 block font-body text-[0.7rem] text-ink/50">
+                Each toggle is a block: the first line is the toggle title, the lines under it are
+                its text. Leave a blank line between toggles. Leave empty to show no toggles.
+              </span>
+            </label>
           </div>
 
           {/* Photos + video for this product */}
@@ -392,7 +415,25 @@ export function ProductsTab() {
                   <p className="font-body text-xs font-medium text-ink/70">
                     Photos ({images.length}) — the first is the cover on the collection
                   </p>
-                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  <div
+                    className={`mt-2 grid grid-cols-3 gap-2 rounded-sm sm:grid-cols-4 ${
+                      dragActive ? "ring-2 ring-gold ring-offset-2" : ""
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draft.id) setDragActive(true);
+                    }}
+                    onDragLeave={() => setDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                      if (!draft.id) return;
+                      const imgs = Array.from(e.dataTransfer.files).filter((f) =>
+                        f.type.startsWith("image/"),
+                      );
+                      if (imgs.length) void uploadPhotos(draft.id, imgs);
+                    }}
+                  >
                     {images.map((img, idx) => (
                       <div
                         key={img.id}
@@ -439,8 +480,8 @@ export function ProductsTab() {
                     </label>
                   </div>
                   <p className="mt-1 font-body text-[0.7rem] text-ink/50">
-                    You can select several photos at once. Remove any photo above; removing the
-                    cover promotes the next one.
+                    Select several at once, or drag &amp; drop image files here. Removing the cover
+                    promotes the next photo.
                   </p>
                 </div>
 

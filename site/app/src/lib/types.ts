@@ -35,6 +35,7 @@ export type Product = {
   sort: number;
   visible: number;
   category: string;
+  details: string;
 };
 
 export type GalleryImage = {
@@ -246,6 +247,7 @@ export const SEED_PRODUCTS: Product[] = [
     sort: 1,
     visible: 1,
     category: "premium",
+    details: "",
   },
   {
     id: 2,
@@ -261,6 +263,7 @@ export const SEED_PRODUCTS: Product[] = [
     sort: 2,
     visible: 1,
     category: "premium",
+    details: "",
   },
 ];
 

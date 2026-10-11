@@ -139,16 +139,33 @@ function PieceChooser({ products }: { products: Product[] }) {
 
 // Product photo gallery for the order page: a large active image with a
 // thumbnail strip when there is more than one. Client-only interactivity.
-function ProductGallery({ images, name }: { images: string[]; name: string }) {
+type Media = { type: "image" | "video"; key: string };
+
+function ProductGallery({
+  images,
+  videoKey,
+  name,
+}: {
+  images: string[];
+  videoKey: string | null;
+  name: string;
+}) {
+  // Photos first, then the clip as an extra slide. A product with only a video
+  // still gets a gallery.
+  const media: Media[] = [
+    ...images.map((key) => ({ type: "image" as const, key })),
+    ...(videoKey ? [{ type: "video" as const, key: videoKey }] : []),
+  ];
   const [active, setActive] = useState(0);
-  const count = images.length;
+  const count = media.length;
   const idx = Math.min(active, count - 1);
-  const current = images[idx];
+  const current = media[idx];
   const go = (delta: number) =>
     setActive((a) => {
       const n = Math.min(a, count - 1);
       return (n + delta + count) % count;
     });
+  if (count === 0) return null;
   return (
     <div className="mb-6">
       <div
@@ -156,7 +173,7 @@ function ProductGallery({ images, name }: { images: string[]; name: string }) {
         tabIndex={count > 1 ? 0 : -1}
         role="group"
         aria-roledescription="carousel"
-        aria-label={`${name} photos`}
+        aria-label={`${name} photos and video`}
         onKeyDown={(e) => {
           if (count < 2) return;
           if (e.key === "ArrowLeft") {
@@ -168,17 +185,31 @@ function ProductGallery({ images, name }: { images: string[]; name: string }) {
           }
         }}
       >
-        <img
-          src={`/img/${current}`}
-          alt={`${name}, a Zin Choc piece (photo ${idx + 1} of ${count})`}
-          className="aspect-[4/5] w-full rounded-sm object-cover"
-        />
+        {current.type === "video" ? (
+          <video
+            key={current.key}
+            src={`/img/${current.key}`}
+            className="aspect-[4/5] w-full rounded-sm bg-ink object-cover"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <img
+            src={`/img/${current.key}`}
+            alt={`${name}, a Zin Choc piece (${idx + 1} of ${count})`}
+            className="aspect-[4/5] w-full rounded-sm object-cover"
+          />
+        )}
         {count > 1 ? (
           <>
             <button
               type="button"
               onClick={() => go(-1)}
-              aria-label="Previous photo"
+              aria-label="Previous"
               className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <svg
@@ -197,7 +228,7 @@ function ProductGallery({ images, name }: { images: string[]; name: string }) {
             <button
               type="button"
               onClick={() => go(1)}
-              aria-label="Next photo"
+              aria-label="Next"
               className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-beige/85 text-ink shadow-sm backdrop-blur transition hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <svg
@@ -213,7 +244,7 @@ function ProductGallery({ images, name }: { images: string[]; name: string }) {
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
-            <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 font-body text-xs tabular-nums text-beige">
+            <span className="absolute right-2 top-2 rounded-full bg-ink/70 px-2 py-0.5 font-body text-xs tabular-nums text-beige">
               {idx + 1} / {count}
             </span>
           </>
@@ -221,27 +252,106 @@ function ProductGallery({ images, name }: { images: string[]; name: string }) {
       </div>
       {count > 1 ? (
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {images.map((key, i) => (
+          {media.map((m, i) => (
             <button
-              key={key}
+              key={`${m.type}-${m.key}`}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`Show photo ${i + 1} of ${count}`}
+              aria-label={m.type === "video" ? "Show the video" : `Show photo ${i + 1} of ${count}`}
               aria-current={i === idx ? "true" : undefined}
-              className={`overflow-hidden rounded-sm border ${
+              className={`relative overflow-hidden rounded-sm border ${
                 i === idx ? "border-gold" : "border-transparent"
               }`}
             >
-              <img
-                src={`/img/${key}`}
-                alt=""
-                className="aspect-square w-full object-cover"
-                loading="lazy"
-              />
+              {m.type === "video" ? (
+                <>
+                  <video
+                    src={`/img/${m.key}`}
+                    className="aspect-square w-full bg-ink object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink/70">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3 text-beige" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <img
+                  src={`/img/${m.key}`}
+                  alt=""
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                />
+              )}
             </button>
           ))}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// Parse the product's detail text into expandable sections: each block's first
+// line is the toggle title, the rest is its body, blocks separated by a blank
+// line. Minimal accordion on silver hairlines, in keeping with the brand.
+function parseSections(text: string): { title: string; body: string }[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => {
+      const lines = block.trim().split("\n");
+      return { title: lines[0]?.trim() ?? "", body: lines.slice(1).join("\n").trim() };
+    })
+    .filter((s) => s.title.length > 0);
+}
+
+function ProductDetails({ details }: { details: string }) {
+  const sections = parseSections(details || "");
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  if (sections.length === 0) return null;
+  return (
+    <div className="mt-8 max-w-md border-t border-silver/50">
+      {sections.map((s, i) => {
+        const isOpen = Boolean(open[i]);
+        return (
+          <div key={i} className="border-b border-silver/50">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
+              className="flex w-full items-center justify-between gap-4 py-4 text-left font-body text-sm font-medium tracking-wide text-ink transition-colors hover:text-gold"
+            >
+              <span>{s.title}</span>
+              <svg
+                viewBox="0 0 24 24"
+                className={`h-4 w-4 shrink-0 text-ink/50 transition-transform duration-200 ${
+                  isOpen ? "rotate-45" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14 M5 12h14" />
+              </svg>
+            </button>
+            {isOpen ? (
+              <div className="pb-5 font-body text-sm leading-relaxed text-ink/70">
+                {s.body.split(/\n+/).map((para, j) => (
+                  <p key={j} className={j === 0 ? "" : "mt-3"}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -374,8 +484,8 @@ function OrderForm({
     <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
       {/* Product summary */}
       <aside>
-        {productImages.length > 0 ? (
-          <ProductGallery images={productImages} name={product.name} />
+        {productImages.length > 0 || product.video_key ? (
+          <ProductGallery images={productImages} videoKey={product.video_key} name={product.name} />
         ) : null}
         <p className="font-body text-xs uppercase tracking-[0.3em] text-ink/55">Your order</p>
         <h1 className="mt-3 font-display text-3xl leading-tight text-ink md:text-4xl">
@@ -404,6 +514,7 @@ function OrderForm({
           Prices are in Australian dollars and include GST. Delivery is quoted separately once we
           confirm your date and address.
         </p>
+        <ProductDetails details={product.details} />
       </aside>
 
       {/* Order form */}

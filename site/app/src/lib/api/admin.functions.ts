@@ -146,6 +146,7 @@ const ProductSchema = z.object({
   sort: z.number().int().min(0).max(1_000_000),
   visible: z.boolean(),
   category: z.string().trim().min(1).max(60),
+  details: z.string().trim().max(8000).default(""),
 });
 
 export const adminSaveProduct = createServerFn({ method: "POST" })
@@ -181,6 +182,7 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       sort: v.sort,
       visible: v.visible ? 1 : 0,
       category: v.category,
+      details: v.details,
     };
     try {
       if (v.id) {

@@ -37,6 +37,7 @@ type ProductRow = {
   sort: number;
   visible: number;
   category: string;
+  details: string | null;
 };
 
 function rowToProduct(r: ProductRow): Product {
@@ -52,7 +53,8 @@ function rowToProduct(r: ProductRow): Product {
     video_key: r.video_key ?? null,
     sort: r.sort,
     visible: r.visible,
-    category: r.category ?? "wedding",
+    category: r.category ?? "premium",
+    details: r.details ?? "",
   };
 }
 
@@ -64,7 +66,7 @@ export async function getVisibleProducts(): Promise<Product[]> {
   try {
     const res = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category, details FROM products WHERE visible = 1 ORDER BY sort ASC, id ASC",
       )
       .all<ProductRow>();
     const rows = res.results ?? [];
@@ -80,7 +82,7 @@ export async function getAllProducts(): Promise<Product[]> {
   if (!db) return [];
   const res = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products ORDER BY sort ASC, id ASC",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category, details FROM products ORDER BY sort ASC, id ASC",
     )
     .all<ProductRow>();
   return (res.results ?? []).map(rowToProduct);
@@ -91,7 +93,7 @@ export async function getProductById(id: number): Promise<Product | null> {
   if (!db) return null;
   const row = await db
     .prepare(
-      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE id = ?",
+      "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category, details FROM products WHERE id = ?",
     )
     .bind(id)
     .first<ProductRow>();
@@ -221,6 +223,7 @@ export type ProductInput = {
   sort: number;
   visible: number;
   category: string;
+  details: string;
 };
 
 // Turn free text into a URL-safe slug; empty when the text has no usable
@@ -373,7 +376,7 @@ export async function createProduct(input: ProductInput): Promise<void> {
   if (!db) return;
   await db
     .prepare(
-      "INSERT INTO products (slug, name, description, price_cents, unit, min_order, sort, visible, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (slug, name, description, price_cents, unit, min_order, sort, visible, category, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       input.slug,
@@ -385,6 +388,7 @@ export async function createProduct(input: ProductInput): Promise<void> {
       input.sort,
       input.visible,
       input.category,
+      input.details,
     )
     .run();
 }
@@ -394,7 +398,7 @@ export async function updateProduct(id: number, input: ProductInput): Promise<vo
   if (!db) return;
   await db
     .prepare(
-      "UPDATE products SET slug = ?, name = ?, description = ?, price_cents = ?, unit = ?, min_order = ?, sort = ?, visible = ?, category = ?, updated_at = datetime('now') WHERE id = ?",
+      "UPDATE products SET slug = ?, name = ?, description = ?, price_cents = ?, unit = ?, min_order = ?, sort = ?, visible = ?, category = ?, details = ?, updated_at = datetime('now') WHERE id = ?",
     )
     .bind(
       input.slug,
@@ -406,6 +410,7 @@ export async function updateProduct(id: number, input: ProductInput): Promise<vo
       input.sort,
       input.visible,
       input.category,
+      input.details,
       id,
     )
     .run();
@@ -574,7 +579,7 @@ export async function getVisibleProductBySlug(slug: string): Promise<Product | n
   try {
     const row = await db
       .prepare(
-        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category FROM products WHERE slug = ? AND visible = 1",
+        "SELECT id, slug, name, description, price_cents, unit, min_order, image_key, video_key, sort, visible, category, details FROM products WHERE slug = ? AND visible = 1",
       )
       .bind(slug)
       .first<ProductRow>();
