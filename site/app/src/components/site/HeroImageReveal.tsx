@@ -56,7 +56,7 @@ export function HeroImageReveal({ imageSrc, settings }: { imageSrc: string; sett
       >
         <img
           src={imageSrc}
-          alt="A Zin Choc wedding tablescape of handcrafted chocolate bomboniere"
+          alt="Handcrafted Zin Choc chocolate bonbons"
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent" />

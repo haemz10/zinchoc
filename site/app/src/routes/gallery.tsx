@@ -15,7 +15,7 @@ export const Route = createFileRoute("/gallery")({
     const origin = loaderData?.origin ?? "";
     const title = "Gallery | Zin Choc";
     const description =
-      "Photographs from the Zin Choc atelier: wedding bomboniere and art bonbon boxes, finished by hand in cocoa butter, gold and silver.";
+      "Photographs from the Zin Choc atelier: artisan chocolate bonbons and art bonbon boxes, finished by hand in cocoa butter, gold and silver.";
     return {
       meta: [
         { title },
@@ -76,8 +76,8 @@ function GalleryPage() {
               From the atelier
             </h1>
             <p className="mt-5 max-w-[65ch] font-body text-base leading-relaxed text-ink/75">
-              Pieces we have made and moments from the bench: wedding bomboniere, art bonbon boxes,
-              and the quiet work in between. Every photograph is our own.
+              Pieces we have made and moments from the bench: artisan chocolate bonbons, art bonbon
+              boxes, and the quiet work in between. Every photograph is our own.
             </p>
           </div>
         </header>

@@ -177,8 +177,8 @@ function ThankYouPage() {
                   anything is made.
                 </li>
                 <li className="border-l-2 border-gold/50 pl-4">
-                  Your pieces are made by hand in the weeks before your wedding and delivered
-                  cold-chain protected, usually two to four days before the day.
+                  Your pieces are made by hand in the days before delivery and sent cold-chain
+                  protected, so they arrive fresh.
                 </li>
               </ol>
               <p className="mt-6 font-body text-sm leading-relaxed text-ink/65">

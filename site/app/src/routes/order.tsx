@@ -131,7 +131,7 @@ function PieceChooser({ products }: { products: Product[] }) {
         href="/#enquiry"
         className="mt-8 inline-block font-body text-sm text-ink underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
       >
-        Prefer to talk first? Tell us about your day.
+        Prefer to talk first? Tell us what you're planning.
       </a>
     </div>
   );
@@ -577,8 +577,7 @@ function OrderForm({
           </div>
           {errors.quantity ? <p className={errorClass}>{errors.quantity}</p> : null}
           <p className="mt-2 font-body text-xs text-ink/55">
-            Minimum {product.min_order}. Need a different quantity for an intimate wedding? Send an
-            enquiry instead.
+            Minimum {product.min_order}. Need a different quantity? Send an enquiry instead.
           </p>
         </div>
 
@@ -640,7 +639,7 @@ function OrderForm({
           </div>
           <div>
             <label htmlFor="o-date" className={labelClass}>
-              Wedding or event date <span className="text-ink/45">(optional)</span>
+              Event date <span className="text-ink/45">(optional)</span>
             </label>
             <input
               id="o-date"

@@ -42,7 +42,7 @@ function validate(f: Fields): Record<string, string> {
   if (!f.email.trim()) e.email = "Please enter your email address.";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))
     e.email = "Please enter a valid email address.";
-  if (!f.message.trim()) e.message = "Please add a short note about your day.";
+  if (!f.message.trim()) e.message = "Please add a short note about what you're planning.";
   if (!f.consent) e.consent = "Please agree to the privacy policy so we can reply.";
   return e;
 }
@@ -125,7 +125,7 @@ export function EnquirySection({
                   deposit secures your date.
                 </p>
                 <p className="mt-4 font-body text-base leading-relaxed text-ink/75">
-                  If your wedding is close, feel free to email us directly at{" "}
+                  If your event is soon, feel free to email us directly at{" "}
                   <a
                     href={`mailto:${settings.contact_email}`}
                     className="text-ink underline decoration-gold underline-offset-4"
@@ -214,7 +214,7 @@ export function EnquirySection({
 
                   <div>
                     <label htmlFor="f-date" className={labelClass}>
-                      Wedding date <span className="text-ink/45">(optional)</span>
+                      Event date <span className="text-ink/45">(optional)</span>
                     </label>
                     <input
                       id="f-date"
@@ -266,7 +266,7 @@ export function EnquirySection({
 
                 <div>
                   <label htmlFor="f-message" className={labelClass}>
-                    Tell us about your day
+                    Tell us what you're planning
                   </label>
                   <textarea
                     id="f-message"
@@ -365,8 +365,7 @@ export function EnquirySection({
             <h3 className="font-display text-xl text-ink">How payment works</h3>
             <ul className="mt-5 space-y-4 font-body text-sm leading-relaxed text-ink/75">
               <li className="border-l-2 border-gold/50 pl-4">
-                A 50% deposit invoice, sent by email, secures your wedding date once you approve the
-                design.
+                A 50% deposit invoice, sent by email, secures your date once you approve the design.
               </li>
               <li className="border-l-2 border-gold/50 pl-4">
                 The balance is due two weeks before delivery.

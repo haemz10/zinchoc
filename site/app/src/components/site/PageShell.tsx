@@ -101,7 +101,7 @@ export function HiddenPageNotice() {
         href="/#enquiry"
         className="mt-8 inline-block font-body text-sm text-ink underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
       >
-        Tell us about your day
+        Tell us what you're planning
       </a>
     </div>
   );

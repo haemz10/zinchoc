@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
     const ogImage = origin ? (ogKey ? `${origin}/img/${ogKey}` : `${origin}/og-cover.jpg`) : "";
     const title = "Zin Choc | Artisan Chocolate Catering, Made in Australia";
     const description =
-      "Luxury artisan chocolate, handcrafted to order in Australia: wedding bomboniere and collectible art bonbon boxes.";
+      "Luxury artisan chocolate, handcrafted to order in Australia: artisan chocolate bonbons and collectible art bonbon boxes.";
     return {
       meta: [
         { title },
@@ -59,7 +59,7 @@ function Home() {
         "@id": origin ? `${origin}/#business` : "#business",
         name: settings.business_name || "Zin Choc",
         description:
-          "Luxury artisan chocolate, handcrafted to order in Australia: wedding bomboniere and collectible art bonbon boxes.",
+          "Luxury artisan chocolate, handcrafted to order in Australia: artisan chocolate bonbons and collectible art bonbon boxes.",
         email: settings.contact_email,
         ...(origin ? { url: origin } : {}),
         image: origin ? `${origin}/favicon.svg` : undefined,
