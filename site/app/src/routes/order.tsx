@@ -711,8 +711,8 @@ function OrderForm({
               className="mt-1 h-4 w-4 shrink-0 accent-gold"
             />
             <span className="font-body text-sm leading-relaxed text-ink/75">
-              I agree that Zin Choc may use the details above to process my order, as described in
-              the{" "}
+              I agree that the details I provide may be collected and used to process my order, as
+              described in the{" "}
               <a href="/privacy" className="text-ink underline decoration-gold underline-offset-4">
                 privacy policy
               </a>
